@@ -1,0 +1,29 @@
+[package]
+name = "hega-rs"
+version = "0.1.0"
+edition = "2024"
+
+[dependencies]
+rayon = "1.10.0"
+serde = {version="*", features = ["derive"]}
+
+
+[buid]
+rustflags = [
+    "target-cpu=native",
+    "llvm-args=-ffast-math",
+    # "-C", "llvm-args=-force-vector-width=16"
+]
+
+[package.metadata.cargo_resources]
+provides = [
+    { crate_path = "./dicts/EPOS.particles.txt", output_path="EPOS.particles" },
+    { crate_path = "./dicts/EPOS_LEPTONS.particles.txt", output_path="EPOS.LEPTONS.particles" }, 
+    { crate_path = "./dicts/EPOS_BARYONS.particles.txt", output_path="EPOS.BARYONS.particles" }, 
+]
+
+## requires = [
+##     { resource_name="EPOS.particles" },
+##     { resource_name="EPOS.LEPTONS.particles" },
+##     { resource_name="EPOS.BARYONS.particles" },
+## ]
