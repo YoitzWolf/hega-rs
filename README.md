@@ -7,7 +7,11 @@
 
 ## Realisation:
 
-- Rust (2024) 
+- Rust (2024)
 - uses [rayon](https://docs.rs/rayon/latest/rayon/) for multithreading
 - [printer.ipynb](https://github.com/YoitzWolf/hega-rs/printer.ipynb]) - printing results example
 
+## To Run:
+
+build: `cargo build --release`
+run: `cargo run --release`

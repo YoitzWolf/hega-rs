@@ -1,4 +1,4 @@
-use std::{collections::HashMap, io::BufRead, str::FromStr};
+use std::{collections::{HashMap, HashSet}, io::BufRead, str::FromStr};
 
 use serde::{Deserialize, Serialize};
 
@@ -90,11 +90,12 @@ pub enum DctCoding {
 
 #[derive(Debug)]
 pub struct EposDict {
-    dct: HashMap<i32, EposDictParticle>
+    dct: HashMap<i32, EposDictParticle>,
+    leptons: HashSet<i32>
 }
 
 impl EposDict {
-    pub fn upload<T: Sized + std::io::Read>(data: std::io::BufReader<T>, as_code: DctCoding) -> Self {
+    pub fn upload<T: Sized + std::io::Read>(data: std::io::BufReader<T>, as_code: DctCoding, leptons: Option<HashSet<i32>>) -> Self {
 
         let mut mp = HashMap::new();
 
@@ -112,15 +113,23 @@ impl EposDict {
                         mp.insert(code, v);
                     }
                 } else {
-                    panic!("ERROR READING DICT")
+                    panic!("ERROR READING DICT WITH EPOS INTERPRETER")
                 }
             }
         );
-
-        Self { dct: mp }
+        Self { dct: mp, leptons: leptons.unwrap_or(HashSet::new())}
     }
 
     pub fn get(&self, k: &i32) -> Option<&EposDictParticle> {
         self.dct.get(k)
     }
+
+    pub fn is_lepton(&self, k: &i32) -> bool {
+        self.leptons.contains(k)
+    }
+
+    pub fn codes(&self) -> std::collections::hash_map::Keys<'_, i32, EposDictParticle> {
+        self.dct.keys()
+    }
+
 }

@@ -4,3 +4,6 @@ pub use generic::*;
 
 mod impls;
 pub use impls::*;
+
+
+pub mod fncs;

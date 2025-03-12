@@ -206,4 +206,8 @@ impl<'a, 'b> GenericDataContainer<'a, 'b> for OSCEposDataFile<'b> {
             },
         }
     }
+
+    fn push_back(&mut self, mut t: Self) {
+        self.events.append(&mut t.events);
+    }
 }

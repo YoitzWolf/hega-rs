@@ -17,4 +17,6 @@ pub trait GenericDataContainer<'a, 'b>: Sized {
 
     fn upload<T: Sized + std::io::Read>(data: BufReader<T>, decoder: &'b Self::Decoder) -> Result<Self, std::io::Error>;
 
+    fn push_back(&mut self, t: Self);
+
 }
