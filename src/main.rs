@@ -43,7 +43,7 @@ struct Args {
 
     /// List of files, delimeter ','. Use "quotes" if path contains whitespaces
     #[clap(short, long, num_args = 1.., value_delimiter = ',')]
-    filename: Vec<String>,
+    filenames: Vec<String>,
 
     #[clap(short, long="output", default_value="results.csv.stat")]
     o: String
@@ -140,7 +140,7 @@ fn main() {
     let v = match args.ftype {
         AcceptedTypes::EPOS => {
             let start = SystemTime::now();
-            let eposFile = args.filename.iter().fold(None, 
+            let eposFile = args.filenames.iter().fold(None, 
                 |mut fo:Option<fmt::oscar::OSCEposDataFile>, x| {
                     println!(">> FILE READING [{}]", x);
                     let f = File::open(&x).unwrap();
@@ -161,7 +161,7 @@ fn main() {
         },
         AcceptedTypes::PHQMD => {
             let start = SystemTime::now();
-            let phqmdFile = args.filename.iter().fold(None, 
+            let phqmdFile = args.filenames.iter().fold(None, 
                 |mut fo:Option<fmt::phqmd::PHQMDDataFile>, x| {
                     println!(">> FILE READING [{}]", x);
                     let f = File::open(&x).unwrap();

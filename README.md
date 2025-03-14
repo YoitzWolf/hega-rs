@@ -18,3 +18,5 @@ build: `cargo build --release`
 ## To Use
 
 `hega-rs.exe --help`
+
+`genarg.bat` - example how to generate large FILENAMES argument for Windows
