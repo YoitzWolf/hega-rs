@@ -22,6 +22,18 @@ pub enum AcceptedTypes {
     PHQMD
 }
 
+/*
+#[derive(Debug, clap::Args)]
+#[group(required = true, multiple = false)]
+pub struct FileInput {
+    #[default]
+    #[clap(short, long, value_parser, num_args = 1.., value_delimiter = ' ')]
+    filenames: Vec<String>,
+    
+    #[clap(short, long, value_parser, num_args = 1.., value_delimiter = ' ')]
+    dirname: String,
+}*/
+
 
 #[derive(Parser, Debug)]
 #[command(version, about, long_about = None)]
@@ -29,9 +41,12 @@ struct Args {
     /// Type of file
     ftype: AcceptedTypes,
 
-    /// List of files
-    #[clap(short, long, value_parser, num_args = 1.., value_delimiter = ' ')]
+    /// List of files, delimeter ','. Use "quotes" if path contains whitespaces
+    #[clap(short, long, num_args = 1.., value_delimiter = ',')]
     filename: Vec<String>,
+
+    #[clap(short, long="output", default_value="results.csv.stat")]
+    o: String
 }
 
 fn main() {
@@ -116,10 +131,10 @@ fn main() {
     );*/
 
     use std::time::SystemTime;
-    
-
 
     // ANALYSER
+
+    // println!("{:?}", args.filename);
     
     let start = SystemTime::now();
     let v = match args.ftype {
@@ -127,6 +142,7 @@ fn main() {
             let start = SystemTime::now();
             let eposFile = args.filename.iter().fold(None, 
                 |mut fo:Option<fmt::oscar::OSCEposDataFile>, x| {
+                    println!(">> FILE READING [{}]", x);
                     let f = File::open(&x).unwrap();
                     if let Some(mut fo) = fo {
                         fo.push_back(
@@ -147,6 +163,7 @@ fn main() {
             let start = SystemTime::now();
             let phqmdFile = args.filename.iter().fold(None, 
                 |mut fo:Option<fmt::phqmd::PHQMDDataFile>, x| {
+                    println!(">> FILE READING [{}]", x);
                     let f = File::open(&x).unwrap();
                     if let Some(mut fo) = fo {
                         fo.push_back(
@@ -232,7 +249,7 @@ fn main() {
 
     // headers = "E[GeV];\tB;\tL\n".as_bytes()
     println!("TOTAL DONE: {} s", end.as_secs_f64());
-    let mut f = File::create("./phsd.csv.stat").unwrap();
+    let mut f = File::create(args.o).unwrap();
     f.write((headers.join(";\t") + "\n").as_bytes()).unwrap();
     res.iter().for_each(|vals| {
         f.write((vals.iter().map(ToString::to_string).collect::<Vec<_>>().join(";\t") + "\n").as_bytes())

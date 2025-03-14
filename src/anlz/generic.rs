@@ -138,7 +138,7 @@ where &'a[Event]: rayon::iter::IntoParallelIterator<Item = &'a Event>
     pub fn calculate_criteria<T: Sync + ScalarCriteria<'a, <Event::P as Particle>::Decoder, Event::P>>
     (   
             &self,
-            filter: impl (Fn(&Event::P, &<Event::P as Particle>::Decoder) -> bool),
+            filter: impl (Fn(&Event::P, &<Event::P as Particle>::Decoder) -> bool) + Sync,
             criteria: Vec<T>, dec: &<Event::P as Particle>::Decoder
     ) -> ScalarAnalyzerResults
     where
@@ -153,11 +153,14 @@ where &'a[Event]: rayon::iter::IntoParallelIterator<Item = &'a Event>
         let headers = criteria.iter().map(|x| x.name() ).collect::<Vec<_>>();
 
         let criteria_vec = Arc::new(criteria);
+        //let filter = Arc::new(filter);
         let dec = Arc::new(dec);
 
         let results = self.events.par_iter().map(
                 |event| {
-                    event.particles().fold(
+                    event.particles().filter(|x| {
+                        filter(x, dec.as_ref())
+                    }).fold(
                         criteria_vec.iter().map(|x| {(0., x)}).collect::<Vec<_>>(),
                         |mut crit, p| {
                             crit.iter_mut().for_each(

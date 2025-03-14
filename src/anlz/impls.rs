@@ -31,17 +31,17 @@ impl Particle for OscarParticle {
 
     fn b_charge(&self, dct: &EposDict) -> f64 {
         if let Some(pd) = dct.get(&self.code) {
-            [   pd.ifl1.unwrap_or({ println!("[WARNING]: Using undefined values! {:?}", pd); 0 }),
-                pd.ifl2.unwrap_or({ println!("[WARNING]: Using undefined values! {:?}", pd); 0 }),
-                pd.ifl3.unwrap_or({ println!("[WARNING]: Using undefined values! {:?}", pd); 0 })
+            [   pd.ifl1.unwrap_or_else(|| { println!("[WARNING::EPOS]: Using undefined values! {:?}", pd); 0 }),
+                pd.ifl2.unwrap_or_else(|| { println!("[WARNING::EPOS]: Using undefined values! {:?}", pd); 0 }),
+                pd.ifl3.unwrap_or_else(|| { println!("[WARNING::EPOS]: Using undefined values! {:?}", pd); 0 })
             ].iter().map(
                     |&x| { if (x > 0) { 1. } else if (x < 0) {-1.} else {0.} }
                 ).sum::<f64>() / 3.0
         } else {
             -if let Some(pd) = dct.get(&-self.code) {
-                [   pd.ifl1.unwrap_or(0),
-                    pd.ifl2.unwrap_or(0),
-                    pd.ifl3.unwrap_or(0)
+                [   pd.ifl1.unwrap_or_else(|| { println!("[WARNING::EPOS]: Using undefined values! {:?}", pd); 0 }),
+                    pd.ifl2.unwrap_or_else(|| { println!("[WARNING::EPOS]: Using undefined values! {:?}", pd); 0 }),
+                    pd.ifl3.unwrap_or_else(|| { println!("[WARNING::EPOS]: Using undefined values! {:?}", pd); 0 })
                 ].iter().map(
                         |&x| { if (x > 0) { 1. } else if (x < 0) {-1.} else {0.} }
                     ).sum::<f64>() / 3.0
@@ -102,17 +102,17 @@ impl Particle for PHQMDParticle {
 
     fn b_charge(&self, dct: &EposDict) -> f64 {
         if let Some(pd) = dct.get(&self.code) {
-            [   pd.ifl1.unwrap_or(0),
-                pd.ifl2.unwrap_or(0),
-                pd.ifl3.unwrap_or(0)
+            [   pd.ifl1.unwrap_or_else(|| { println!("[WARNING::EPOS]: Using undefined values! {:?}", pd); 0 }),
+                pd.ifl2.unwrap_or_else(|| { println!("[WARNING::EPOS]: Using undefined values! {:?}", pd); 0 }),
+                pd.ifl3.unwrap_or_else(|| { println!("[WARNING::EPOS]: Using undefined values! {:?}", pd); 0 })
             ].iter().map(
                     |&x| { if (x > 0) { 1. } else if (x < 0) {-1.} else {0.} }
                 ).sum::<f64>() / 3.0
         } else {
             if let Some(pd) = dct.get(&-self.code) {
-                -[   pd.ifl1.unwrap_or(0),
-                    pd.ifl2.unwrap_or(0),
-                    pd.ifl3.unwrap_or(0)
+                -[   pd.ifl1.unwrap_or_else(|| { println!("[WARNING::EPOS]: Using undefined values! {:?}", pd); 0 }),
+                     pd.ifl2.unwrap_or_else(|| { println!("[WARNING::EPOS]: Using undefined values! {:?}", pd); 0 }),
+                     pd.ifl3.unwrap_or_else(|| { println!("[WARNING::EPOS]: Using undefined values! {:?}", pd); 0 })
                 ].iter().map(
                         |&x| { if (x > 0) { 1. } else if (x < 0) {-1.} else {0.} }
                     ).sum::<f64>() / 3.0

@@ -1,0 +1,1 @@
+$a = ((ls -r -Name .\data\epos-results\eposSim\ *.data | foreach-object{ ('"' + (Get-Item .).FullName + "\data\epos-results\eposSim\$_" +'"') }) -join ",")

@@ -5,13 +5,16 @@
 - EPOS4+ (OSC1999)
 - PHSD (.dat)
 
-## Realisation:
+## Realisation
 
 - Rust (2024)
 - uses [rayon](https://docs.rs/rayon/latest/rayon/) for multithreading
 - [printer.ipynb](https://github.com/YoitzWolf/hega-rs/printer.ipynb]) - printing results example
 
-## To Run:
+## To Build
 
 build: `cargo build --release`
-run: `cargo run --release`
+
+## To Use
+
+`hega-rs.exe --help`
