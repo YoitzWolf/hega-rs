@@ -10,7 +10,7 @@
 
 - Rust (2024)
 - uses [rayon](https://docs.rs/rayon/latest/rayon/) for multithreading
-- [printer.ipynb](https://github.com/YoitzWolf/hega-rs/printer.ipynb]) - printing results example
+- [printer.ipynb](https://github.com/YoitzWolf/hega-rs/blob/master/printer.ipynb]) - printing results example
 
 ## To Build
 
@@ -52,3 +52,26 @@ The result is csv file where each line describes an event:
 ```
 
 Columns are the same as criteria!
+
+
+## Custom Criteria
+
+Now only scalar result values are implemented!
+
+Custom criteria have to implement trait (see) `https://github.com/YoitzWolf/hega-rs/blob/master/src/anlz/generic.rs`:
+```rust
+pub trait ScalarCriteria<'a, S, T>: Sized + PartialEq + Debug + Clone + Send
+where T: Particle<Decoder = S> + 'static,
+    // S: 'a
+{
+    fn get_criteria_value(&self, p: &T, dec: &S) -> f64;// Clone + Send + Sync + 'a;
+
+    fn name(&self) -> String;
+}
+```
+
+after that it could be sent to analyzer:
+
+```
+
+```

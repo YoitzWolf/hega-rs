@@ -135,11 +135,12 @@ where &'a[Event]: rayon::iter::IntoParallelIterator<Item = &'a Event>
 
     ///
     /// `criteria` - scalar criteria to calculate, calculated **after** filter
-    pub fn calculate_criteria<T: Sync + ScalarCriteria<'a, <Event::P as Particle>::Decoder, Event::P>>
+    pub fn calculate_criteria // <T: Sync + ScalarCriteria<'a, <Event::P as Particle>::Decoder, Event::P>>
     (   
             &self,
             filter: impl (Fn(&Event::P, &<Event::P as Particle>::Decoder) -> bool) + Sync,
-            criteria: Vec<T>, dec: &<Event::P as Particle>::Decoder
+            criteria: Vec<impl Sync + ScalarCriteria<'a, <Event::P as Particle>::Decoder, Event::P> >,//Vec<T>,
+            dec: &<Event::P as Particle>::Decoder
     ) -> ScalarAnalyzerResults
     where
         <Event as HEPEvent>::P: 'static ,
