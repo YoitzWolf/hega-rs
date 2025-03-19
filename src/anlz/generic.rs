@@ -1,7 +1,7 @@
 use rayon::prelude::*;
 use std::{borrow::Borrow, collections::HashSet, fmt::Debug, sync::Arc};
 
-pub trait ScalarCriteria<'a, S, T>: Sized + PartialEq + Debug + Clone + Send
+pub trait ScalarCriteria<'a, S, T>: Send + Sync//: PartialEq + Debug + Clone + Send
 where T: Particle<Decoder = S> + 'static,
     // S: 'a
 {
@@ -139,7 +139,7 @@ where &'a[Event]: rayon::iter::IntoParallelIterator<Item = &'a Event>
     (   
             &self,
             filter: impl (Fn(&Event::P, &<Event::P as Particle>::Decoder) -> bool) + Sync,
-            criteria: Vec<impl Sync + ScalarCriteria<'a, <Event::P as Particle>::Decoder, Event::P> >,//Vec<T>,
+            criteria: Vec<& (impl ScalarCriteria<'a, <Event::P as Particle>::Decoder, Event::P> +?Sized) >,//Vec<T>,
             dec: &<Event::P as Particle>::Decoder
     ) -> ScalarAnalyzerResults
     where

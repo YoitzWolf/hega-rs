@@ -1,17 +1,19 @@
+mod anlz;
+mod fmt;
+mod custom_criteria;
+use custom_criteria::*;
+
+
 use std::{
     fs::File,
     io::{BufReader, Write},
 };
 
-use anlz::{HEPEventAnalyzer, StandardCriteria};
-use fmt::{decoder::{self, EposDict}, generic::GenericDataContainer, oscar::OSCEposBlock, phqmd::PHQMDBlock};
-
-use std::env;
+use anlz::{HEPEventAnalyzer, Particle, ScalarCriteria, StandardCriteria};
+use fmt::{decoder::EposDict, generic::GenericDataContainer, oscar::OSCEposBlock, phqmd::{PHQMDBlock, PHQMDParticle}};
 
 use clap::{Parser, *};
 
-mod anlz;
-mod fmt;
 
 #[derive(
     clap::ValueEnum, Clone, Debug, Default
@@ -50,21 +52,11 @@ struct Args {
     o: String
 }
 
+
 fn main() {
     let dict_EPOS;
 
     let args = Args::parse();
-
-    let criteria = vec![
-        StandardCriteria::FinEnergy,
-        StandardCriteria::ECharge,
-        StandardCriteria::BCharge,
-        StandardCriteria::LCharge,
-        StandardCriteria::PseudorapidityFilterCnt(-0.5, 0.5),
-        StandardCriteria::PseudorapidityFilterCnt(-1.0, 1.0),
-        StandardCriteria::PseudorapidityFilterCnt(-1.5, 1.5),
-        
-    ];
 
     match args.ftype {
         AcceptedTypes::EPOS => {
@@ -96,8 +88,6 @@ fn main() {
             );
             drop(dict_lepto);
             /* ----------------------------------------------------------------------------------------------- */
-
-
         },
     }
 
@@ -140,6 +130,16 @@ fn main() {
     let start = SystemTime::now();
     let v = match args.ftype {
         AcceptedTypes::EPOS => {
+            let criteria: Vec< &dyn ScalarCriteria<'_, _, _> > = vec![
+                &StandardCriteria::FinEnergy,
+                &StandardCriteria::ECharge,
+                &StandardCriteria::BCharge,
+                &StandardCriteria::LCharge,
+                &StandardCriteria::PseudorapidityFilterCnt(-0.5, 0.5),
+                &StandardCriteria::PseudorapidityFilterCnt(-1.0, 1.0),
+                &StandardCriteria::PseudorapidityFilterCnt(-1.5, 1.5),
+                &custom_criteria::MyExampleCriterias::StupidCriteria1
+            ];
             let start = SystemTime::now();
             let eposFile = args.filenames.iter().fold(None, 
                 |mut fo:Option<fmt::oscar::OSCEposDataFile>, x| {
@@ -161,6 +161,16 @@ fn main() {
             analyzer.calculate_criteria(anlz::IS_FINAL_FILTER::<OSCEposBlock>, criteria, &dict_EPOS)
         },
         AcceptedTypes::UrQMD_F19 => {
+            let criteria: Vec< &dyn ScalarCriteria<'_, _, _> > = vec![
+                &StandardCriteria::FinEnergy,
+                &StandardCriteria::ECharge,
+                &StandardCriteria::BCharge,
+                &StandardCriteria::LCharge,
+                &StandardCriteria::PseudorapidityFilterCnt(-0.5, 0.5),
+                &StandardCriteria::PseudorapidityFilterCnt(-1.0, 1.0),
+                &StandardCriteria::PseudorapidityFilterCnt(-1.5, 1.5),
+                &custom_criteria::MyExampleCriterias::StupidCriteria1
+            ];
             let start = SystemTime::now();
             let eposFile = args.filenames.iter().fold(None, 
                 |mut fo:Option<fmt::oscar::OSC97UrQMDDataFile>, x| {
@@ -182,6 +192,16 @@ fn main() {
             analyzer.calculate_criteria(anlz::IS_FINAL_FILTER::<OSCEposBlock>, criteria, &dict_EPOS)
         },
         AcceptedTypes::PHQMD => {
+            let criteria: Vec< &dyn ScalarCriteria<'_, _, _> > = vec![
+                &StandardCriteria::FinEnergy,
+                &StandardCriteria::ECharge,
+                &StandardCriteria::BCharge,
+                &StandardCriteria::LCharge,
+                &StandardCriteria::PseudorapidityFilterCnt(-0.5, 0.5),
+                &StandardCriteria::PseudorapidityFilterCnt(-1.0, 1.0),
+                &StandardCriteria::PseudorapidityFilterCnt(-1.5, 1.5),
+                &custom_criteria::MyExampleCriterias::StupidCriteria1
+            ];
             let start = SystemTime::now();
             let phqmdFile = args.filenames.iter().fold(None, 
                 |mut fo:Option<fmt::phqmd::PHQMDDataFile>, x| {

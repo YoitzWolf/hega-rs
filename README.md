@@ -59,6 +59,7 @@ Columns are the same as criteria!
 Now only scalar result values are implemented!
 
 Custom criteria have to implement trait (see) `https://github.com/YoitzWolf/hega-rs/blob/master/src/anlz/generic.rs`:
+
 ```rust
 pub trait ScalarCriteria<'a, S, T>: Sized + PartialEq + Debug + Clone + Send
 where T: Particle<Decoder = S> + 'static,
@@ -70,8 +71,19 @@ where T: Particle<Decoder = S> + 'static,
 }
 ```
 
-after that it could be sent to analyzer:
+after that it could be sent to analyzer in criteria vector:
 
+```rust
+    pub fn calculate_criteria
+    (   
+            &self,
+            filter: impl (Fn(&Event::P, &<Event::P as Particle>::Decoder) -> bool) + Sync,
+            criteria: Vec<impl Sync + ScalarCriteria<'a, <Event::P as Particle>::Decoder, Event::P> >,//Vec<T>,
+            dec: &<Event::P as Particle>::Decoder
+    ) -> ScalarAnalyzerResults
+    where
+        <Event as HEPEvent>::P: 'static ,
+        <Event::P as Particle>::Decoder: Sync
 ```
 
-```
+Example is showed at `https://github.com/YoitzWolf/hega-rs/blob/master/src/custom_criteria.rs`
