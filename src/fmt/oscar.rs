@@ -211,3 +211,127 @@ impl<'a, 'b> GenericDataContainer<'a, 'b> for OSCEposDataFile<'b> {
         self.events.append(&mut t.events);
     }
 }
+
+
+
+/* --------------------------------- URQMD --------------------------------------- */
+
+
+
+/// OSC1997A UrQMD format reader (.f19 UrQMD output)
+/// reuses OSCEposDataFile blocks and headers as much as possible
+/// uses OscarParticle directly
+/// sets STATUS code to =0 to all particles
+/// 
+#[derive(Debug)]
+pub struct OSC97UrQMDDataFile<'a> {
+    header: OSCEposHeader,
+    events: Vec<OSCEposBlock>,
+    pub decoder: &'a EposDict
+}
+
+
+impl<'a, 'b> GenericDataContainer<'a, 'b> for OSC97UrQMDDataFile<'b> {
+    type Header = OSCEposHeader;
+
+    type BlockHeader = OSCEposBlockHeader;
+
+    type Block = OSCEposBlock;
+
+    type Decoder = EposDict;
+
+    fn get_header(&self) -> &Self::Header {
+        &self.header
+    }
+
+    fn get_blocks(&self) -> &Vec<Self::Block> {
+        &self.events
+    }
+
+    fn upload<T: Sized + std::io::Read>(data: std::io::BufReader<T>, decoder: &'b Self::Decoder) -> Result<Self, std::io::Error> {
+        match data.lines().enumerate().try_fold(
+            (
+                None,
+                None,
+                Vec::<String>::new(),
+                vec![]
+            ),
+            |
+                (mut header, mut bufheader, mut buf, mut events)
+                , (idx, _line)| -> Result<_, Box<dyn Error> > {
+                match _line {
+                    Ok(line) => {
+                        if idx <= 2 && line.contains("UrQMD") {
+                            // COMMENT
+                            let cmt = line.trim();
+                            let s: Vec<_> = line.split_ascii_whitespace().map(|x| x.trim()).filter(|x| x.len()>0).collect();
+                            if s.len() < 2 {
+                                // SKIP
+                                Ok((header, bufheader, buf, events))
+                            } else {
+                                header = Some (
+                                    Self::Header {
+                                        snn: s.last().unwrap().parse()?,
+                                        event_signature: cmt.to_owned(),
+                                    }
+                                );
+                                Ok((header, bufheader, buf, events))
+                            }
+                            // END COMMENT
+                        } else {
+                            // DATA OR EMPTY
+                            let tr = line.trim();
+                            let mut tokens: Vec<_> = tr.split_ascii_whitespace().filter(|x| x.len() > 0).collect();
+                            match tokens.len() {
+                                4 => {
+                                    // new event
+                                    if let Some(hd) = bufheader {
+                                        let block = Self::Block::try_from(
+                                            (hd, &buf)
+                                        )?;
+                                        events.push(block);
+                                        buf.clear();
+                                    }
+                                    bufheader = Some(Self::BlockHeader {
+                                        nout: tokens[1].parse().unwrap(),
+                                    });
+                                },
+                                (5..) => {
+                                    // line event
+                                    buf.push({
+                                        tokens.insert(2, &"0"); // add STATUS code, bcs .f19 OSCAR1997A UrQMD output files dont do this
+                                        tokens.join(" ")
+                                    });
+                                },
+                                _ => {
+                                    // warn!("Bad line!");
+                                }
+                            }
+                            Ok((header, bufheader, buf, events))
+                        }
+                    },
+                    Err(e) => {
+                        Err(Box::new(e))
+                    },
+                }
+            }
+        ) {
+            Ok((a, b ,c, events)) => {
+                Ok(
+                    Self {
+                        header: a.unwrap(),
+                        events: events,
+                        decoder: decoder
+                    }
+                )
+            },
+            Err(e) => {
+                Err(std::io::Error::new::<String>(std::io::ErrorKind::InvalidData, e.as_ref().to_string().into()))
+            },
+        }
+    }
+
+    fn push_back(&mut self, mut t: Self) {
+        self.events.append(&mut t.events);
+    }
+}

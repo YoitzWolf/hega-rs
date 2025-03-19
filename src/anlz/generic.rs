@@ -91,7 +91,7 @@ pub trait Particle {
     fn mass_energy(&self, dec: &Self::Decoder) -> f64;
 
     fn energy(&self, dec: &Self::Decoder) -> f64 {
-        self.mass_energy(dec) + self.momentum_energy(dec)
+        (self.mass_energy(dec).powi(2) + self.momentum_energy(dec).powi(2)).sqrt()
     }
 
     /// Returns Electric charge

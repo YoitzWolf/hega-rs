@@ -6,7 +6,8 @@ impl Particle for OscarParticle {
     type Decoder = EposDict;
 
     fn momentum_energy(&self, _dct: &EposDict) -> f64 {
-        self.p0
+        // self.p0
+        (self.p.0.powi(2) + self.p.1.powi(2) + self.p.2.powi(2)).sqrt()
     }
 
     fn momentum(&self, dec: &Self::Decoder) -> &(f64, f64, f64) {

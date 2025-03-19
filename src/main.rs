@@ -19,6 +19,7 @@ mod fmt;
 pub enum AcceptedTypes {
     #[default]
     EPOS,
+    UrQMD_F19,
     PHQMD
 }
 
@@ -82,7 +83,7 @@ fn main() {
 
             
         },
-        AcceptedTypes::PHQMD => {
+        AcceptedTypes::PHQMD | AcceptedTypes::UrQMD_F19 => {
             let dict_lepto = EposDict::upload(
                 BufReader::new(File::open("./dicts/EPOS_LEPTONS.particles.txt").unwrap()),
                 fmt::decoder::DctCoding::PDG,
@@ -151,6 +152,27 @@ fn main() {
                         Some(fo)            
                     } else {
                         Some(fmt::oscar::OSCEposDataFile::upload(BufReader::new(f), &dict_EPOS).unwrap())
+                    }
+                }
+            ).unwrap();
+            let end = start.elapsed().unwrap();
+            println!("READING DONE: {} s", end.as_secs_f64());
+            let analyzer = HEPEventAnalyzer::new(eposFile.get_blocks());
+            analyzer.calculate_criteria(anlz::IS_FINAL_FILTER::<OSCEposBlock>, criteria, &dict_EPOS)
+        },
+        AcceptedTypes::UrQMD_F19 => {
+            let start = SystemTime::now();
+            let eposFile = args.filenames.iter().fold(None, 
+                |mut fo:Option<fmt::oscar::OSC97UrQMDDataFile>, x| {
+                    println!(">> FILE READING [{}]", x);
+                    let f = File::open(&x).unwrap();
+                    if let Some(mut fo) = fo {
+                        fo.push_back(
+                            fmt::oscar::OSC97UrQMDDataFile::upload(BufReader::new(f), &dict_EPOS).unwrap()
+                        );
+                        Some(fo)            
+                    } else {
+                        Some(fmt::oscar::OSC97UrQMDDataFile::upload(BufReader::new(f), &dict_EPOS).unwrap())
                     }
                 }
             ).unwrap();
