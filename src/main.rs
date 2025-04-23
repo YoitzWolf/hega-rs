@@ -1,16 +1,14 @@
 mod anlz;
 mod fmt;
 mod custom_criteria;
-use custom_criteria::*;
 
 
 use std::{
-    fs::File,
-    io::{BufReader, Write},
+    collections::HashSet, f64::consts::PI, fs::File, io::{BufReader, Write}
 };
 
-use anlz::{HEPEventAnalyzer, Particle, ScalarCriteria, StandardCriteria};
-use fmt::{decoder::EposDict, generic::GenericDataContainer, oscar::OSCEposBlock, phqmd::{PHQMDBlock, PHQMDParticle}};
+use anlz::{DistributionCritetia, HEPEventAnalyzer, ScalarCriteria, StandardCriteria, StandardDistributionCriteria};
+use fmt::{decoder::EposDict, generic::GenericDataContainer, oscar::OSCEposBlock, phqmd::PHQMDBlock};
 
 use clap::{Parser, *};
 
@@ -21,8 +19,17 @@ use clap::{Parser, *};
 pub enum AcceptedTypes {
     #[default]
     EPOS,
-    UrQMD_F19,
+    UrQmdF19,
     PHQMD
+}
+
+#[derive(
+    clap::ValueEnum, Clone, Debug, Default, PartialEq, Eq, Hash
+)]
+pub enum CalcTarget {
+    #[default]
+    Statistics,
+    Distribution
 }
 
 /*
@@ -44,12 +51,18 @@ struct Args {
     /// Type of file
     ftype: AcceptedTypes,
 
+    /// List of calculation targets
+    #[clap(short, long, num_args = 1.., value_delimiter = ',', default_value="statistics")]
+    target: Vec<CalcTarget>,
+
     /// List of files, delimeter ','. Use "quotes" if path contains whitespaces
     #[clap(short, long, num_args = 1.., value_delimiter = ',')]
     filenames: Vec<String>,
 
     #[clap(short, long="output", default_value="results.csv.stat")]
     o: String
+
+    
 }
 
 
@@ -75,7 +88,7 @@ fn main() {
 
             
         },
-        AcceptedTypes::PHQMD | AcceptedTypes::UrQMD_F19 => {
+        AcceptedTypes::PHQMD | AcceptedTypes::UrQmdF19 => {
             let dict_lepto = EposDict::upload(
                 BufReader::new(File::open("./dicts/EPOS_LEPTONS.particles.txt").unwrap()),
                 fmt::decoder::DctCoding::PDG,
@@ -126,175 +139,224 @@ fn main() {
     // ANALYSER
 
     // println!("{:?}", args.filename);
+    let calc_target = args.target.iter().collect::<HashSet<_>>();
+    println!(">>>> {:?}", calc_target);
     
     let start = SystemTime::now();
-    let v = match args.ftype {
-        AcceptedTypes::EPOS => {
-            let criteria: Vec< &dyn ScalarCriteria<'_, _, _> > = vec![
-                &StandardCriteria::FinEnergy,
-                &StandardCriteria::ECharge,
-                &StandardCriteria::BCharge,
-                &StandardCriteria::LCharge,
-                &StandardCriteria::PseudorapidityFilterCnt(-0.5, 0.5),
-                &StandardCriteria::PseudorapidityFilterCnt(-1.0, 1.0),
-                &StandardCriteria::PseudorapidityFilterCnt(-1.5, 1.5),
-                &custom_criteria::MyExampleCriterias::StupidCriteria1
-            ];
-            let start = SystemTime::now();
-            let eposFile = args.filenames.iter().fold(None, 
-                |mut fo:Option<fmt::oscar::OSCEposDataFile>, x| {
-                    println!(">> FILE READING [{}]", x);
-                    let f = File::open(&x).unwrap();
-                    if let Some(mut fo) = fo {
-                        fo.push_back(
-                            fmt::oscar::OSCEposDataFile::upload(BufReader::new(f), &dict_EPOS).unwrap()
-                        );
-                        Some(fo)            
-                    } else {
-                        Some(fmt::oscar::OSCEposDataFile::upload(BufReader::new(f), &dict_EPOS).unwrap())
+    
+    let (scalar_results, distr_results) =  {
+        match args.ftype {
+            AcceptedTypes::EPOS => {
+                let criteria: Vec< &dyn ScalarCriteria<'_, _, _> > = vec![
+                    &StandardCriteria::FinEnergy,
+                    &StandardCriteria::ECharge,
+                    &StandardCriteria::BCharge,
+                    &StandardCriteria::LCharge,
+                    &StandardCriteria::PseudorapidityFilterCnt(-0.5, 0.5),
+                    &StandardCriteria::PseudorapidityFilterCnt(-1.0, 1.0),
+                    &StandardCriteria::PseudorapidityFilterCnt(-1.5, 1.5),
+                ];
+                let d_buf_criteria = vec![
+                    StandardDistributionCriteria::new(
+                        anlz::StandardDistributionCriteraDefiner::PdirTheta::<OSCEposBlock>,
+                        0.0, PI, 360, "N(Theta_p)".to_string()
+                    ),// as &dyn DistributionCritetia<'_, _, _>
+                    StandardDistributionCriteria::new(
+                        anlz::StandardDistributionCriteraDefiner::PNu::<OSCEposBlock>,
+                        -1.5, 1.5, 360, "N(Nu)".to_string()
+                    )
+                ];
+                let d_criteria = d_buf_criteria.iter().map(
+                    |x| {
+                        x as  &dyn DistributionCritetia<'_, _, _>
                     }
-                }
-            ).unwrap();
-            let end = start.elapsed().unwrap();
-            println!("READING DONE: {} s", end.as_secs_f64());
-            let analyzer = HEPEventAnalyzer::new(eposFile.get_blocks());
-            analyzer.calculate_criteria(anlz::IS_FINAL_FILTER::<OSCEposBlock>, criteria, &dict_EPOS)
-        },
-        AcceptedTypes::UrQMD_F19 => {
-            let criteria: Vec< &dyn ScalarCriteria<'_, _, _> > = vec![
-                &StandardCriteria::FinEnergy,
-                &StandardCriteria::ECharge,
-                &StandardCriteria::BCharge,
-                &StandardCriteria::LCharge,
-                &StandardCriteria::PseudorapidityFilterCnt(-0.5, 0.5),
-                &StandardCriteria::PseudorapidityFilterCnt(-1.0, 1.0),
-                &StandardCriteria::PseudorapidityFilterCnt(-1.5, 1.5),
-                &custom_criteria::MyExampleCriterias::StupidCriteria1
-            ];
-            let start = SystemTime::now();
-            let eposFile = args.filenames.iter().fold(None, 
-                |mut fo:Option<fmt::oscar::OSC97UrQMDDataFile>, x| {
-                    println!(">> FILE READING [{}]", x);
-                    let f = File::open(&x).unwrap();
-                    if let Some(mut fo) = fo {
-                        fo.push_back(
-                            fmt::oscar::OSC97UrQMDDataFile::upload(BufReader::new(f), &dict_EPOS).unwrap()
-                        );
-                        Some(fo)            
-                    } else {
-                        Some(fmt::oscar::OSC97UrQMDDataFile::upload(BufReader::new(f), &dict_EPOS).unwrap())
+                ).collect::<Vec<_>>();
+                let start = SystemTime::now();
+                let epos_file = args.filenames.iter().fold(None, 
+                    |fo:Option<fmt::oscar::OSCEposDataFile>, x| {
+                        println!(">> FILE READING [{}]", x);
+                        let f = File::open(&x).unwrap();
+                        if let Some(mut fo) = fo {
+                            fo.push_back(
+                                fmt::oscar::OSCEposDataFile::upload(BufReader::new(f), &dict_EPOS).unwrap()
+                            );
+                            Some(fo)            
+                        } else {
+                            Some(fmt::oscar::OSCEposDataFile::upload(BufReader::new(f), &dict_EPOS).unwrap())
+                        }
                     }
-                }
-            ).unwrap();
-            let end = start.elapsed().unwrap();
-            println!("READING DONE: {} s", end.as_secs_f64());
-            let analyzer = HEPEventAnalyzer::new(eposFile.get_blocks());
-            analyzer.calculate_criteria(anlz::IS_FINAL_FILTER::<OSCEposBlock>, criteria, &dict_EPOS)
-        },
-        AcceptedTypes::PHQMD => {
-            let criteria: Vec< &dyn ScalarCriteria<'_, _, _> > = vec![
-                &StandardCriteria::FinEnergy,
-                &StandardCriteria::ECharge,
-                &StandardCriteria::BCharge,
-                &StandardCriteria::LCharge,
-                &StandardCriteria::PseudorapidityFilterCnt(-0.5, 0.5),
-                &StandardCriteria::PseudorapidityFilterCnt(-1.0, 1.0),
-                &StandardCriteria::PseudorapidityFilterCnt(-1.5, 1.5),
-                &custom_criteria::MyExampleCriterias::StupidCriteria1
-            ];
-            let start = SystemTime::now();
-            let phqmdFile = args.filenames.iter().fold(None, 
-                |mut fo:Option<fmt::phqmd::PHQMDDataFile>, x| {
-                    println!(">> FILE READING [{}]", x);
-                    let f = File::open(&x).unwrap();
-                    if let Some(mut fo) = fo {
-                        fo.push_back(
-                            fmt::phqmd::PHQMDDataFile::upload(BufReader::new(f), &dict_EPOS).unwrap()
-                        );
-                        Some(fo)
-                    } else {
-                        Some(fmt::phqmd::PHQMDDataFile::upload(BufReader::new(f), &dict_EPOS).unwrap())
-                    }
-                }
-            ).unwrap();
-            let end = start.elapsed().unwrap();
-            println!("READING DONE: {} s", end.as_secs_f64());
-            let analyzer = HEPEventAnalyzer::new(phqmdFile.get_blocks());
-            analyzer.calculate_criteria(anlz::IS_FINAL_FILTER::<PHQMDBlock>, criteria, &dict_EPOS)
-        },
-    };
-    let end = start.elapsed().unwrap();
-    let headers = v.headers();
-    let res = v.values();
+                ).unwrap();
+                let end = start.elapsed().unwrap();
+                println!("READING DONE: {} s", end.as_secs_f64());
+                let analyzer = HEPEventAnalyzer::new(epos_file.get_blocks());
+                
+                let distr_res = if calc_target.contains(&CalcTarget::Distribution) {
+                    analyzer.calculate_distribution_criteria(anlz::IS_FINAL_FILTER::<OSCEposBlock>, d_criteria, &dict_EPOS) 
+                } else {Default::default()};
+                let stat_res = if calc_target.contains(&CalcTarget::Statistics) {
+                    analyzer.calculate_criteria(anlz::IS_FINAL_FILTER::<OSCEposBlock>, criteria, &dict_EPOS)
+                } else {Default::default()};
 
-    /*let res = phqmdFile
-        .get_blocks()
-        .par_iter()
-        .map(|event| {
-            event
-                .event
-                .iter()
-                .fold((0., 0., 0), |(mut E, mut B, mut L), p| {
-                    {
-                        // LAST GEN
-                        //ENERGY
-                        E += p.E;
-                        //BARYON CHARGE
-                        if let Some(pd) = dict.get(&p.code) {
-                            B += [
-                                pd.ifl1.unwrap_or(0),
-                                pd.ifl2.unwrap_or(0),
-                                pd.ifl3.unwrap_or(0),
-                            ]
-                            .iter()
-                            .map(|&x| {
-                                if (x > 0) {
-                                    1.
-                                } else if (x < 0) {
-                                    -1.
-                                } else {
-                                    0.
-                                }
-                            })
-                            .sum::<f64>()
-                                / 3.0;
-                        } else if let Some(apd) = dict.get(&-(p.code)) {
-                            B -= [
-                                apd.ifl1.unwrap_or(0),
-                                apd.ifl2.unwrap_or(0),
-                                apd.ifl3.unwrap_or(0),
-                            ]
-                            .iter()
-                            .map(|&x| {
-                                if (x > 0) {
-                                    1.
-                                } else if (x < 0) {
-                                    -1.
-                                } else {
-                                    0.
-                                }
-                            })
-                            .sum::<f64>()
-                                / 3.0;
-                        }
-                        // LEPTON CHARGE
-                        if dictLepto.get(&p.code).is_some() {
-                            L += 1;
-                        } else if dictLepto.get(&-(p.code)).is_some() {
-                            L -= 1;
+                (stat_res, distr_res)
+            },
+            AcceptedTypes::UrQmdF19 => {
+                let criteria: Vec< &dyn ScalarCriteria<'_, _, _> > = vec![
+                    &StandardCriteria::FinEnergy,
+                    &StandardCriteria::ECharge,
+                    &StandardCriteria::BCharge,
+                    &StandardCriteria::LCharge,
+                    &StandardCriteria::PseudorapidityFilterCnt(-0.5, 0.5),
+                    &StandardCriteria::PseudorapidityFilterCnt(-1.0, 1.0),
+                    &StandardCriteria::PseudorapidityFilterCnt(-1.5, 1.5),
+                ];
+                let d_buf_criteria = vec![
+                    StandardDistributionCriteria::new(
+                        anlz::StandardDistributionCriteraDefiner::PdirTheta::<OSCEposBlock>,
+                        0.0, PI, 360, "N(Theta_p)".to_string()
+                    ),// as &dyn DistributionCritetia<'_, _, _>
+                    StandardDistributionCriteria::new(
+                        anlz::StandardDistributionCriteraDefiner::PNu::<OSCEposBlock>,
+                        -1.5, 1.5, 360, "N(Nu)".to_string()
+                    )
+                ];
+
+                let d_criteria = d_buf_criteria.iter().map(
+                    |x| {
+                        x as  &dyn DistributionCritetia<'_, _, _>
+                    }
+                ).collect::<Vec<_>>();
+                let start = SystemTime::now();
+                let urqmd_file = args.filenames.iter().fold(None, 
+                    |fo:Option<fmt::oscar::OSC97UrQMDDataFile>, x| {
+                        println!(">> FILE READING [{}]", x);
+                        let f = File::open(&x).unwrap();
+                        if let Some(mut fo) = fo {
+                            fo.push_back(
+                                fmt::oscar::OSC97UrQMDDataFile::upload(BufReader::new(f), &dict_EPOS).unwrap()
+                            );
+                            Some(fo)            
+                        } else {
+                            Some(fmt::oscar::OSC97UrQMDDataFile::upload(BufReader::new(f), &dict_EPOS).unwrap())
                         }
                     }
-                    (E, B, L)
-                })
-        })
-        .collect::<Vec<_>>();*/
+                ).unwrap();
+                let end = start.elapsed().unwrap();
+                println!("READING DONE: {} s", end.as_secs_f64());
+                let analyzer = HEPEventAnalyzer::new(urqmd_file.get_blocks());
+                //analyzer.calculate_criteria(anlz::IS_FINAL_FILTER::<OSCEposBlock>, criteria, &dict_EPOS)
+                
+                let distr_res = if calc_target.contains(&CalcTarget::Distribution) {
+                    analyzer.calculate_distribution_criteria(anlz::IS_FINAL_FILTER::<OSCEposBlock>, d_criteria, &dict_EPOS) 
+                } else {Default::default()};
+                let stat_res = if calc_target.contains(&CalcTarget::Statistics) {
+                    analyzer.calculate_criteria(anlz::IS_FINAL_FILTER::<OSCEposBlock>, criteria, &dict_EPOS)
+                } else {Default::default()};
+                (stat_res, distr_res)
+            },
+            AcceptedTypes::PHQMD => {
+                let criteria: Vec< &dyn ScalarCriteria<'_, _, _> > = vec![
+                    &StandardCriteria::FinEnergy,
+                    &StandardCriteria::ECharge,
+                    &StandardCriteria::BCharge,
+                    &StandardCriteria::LCharge,
+                    &StandardCriteria::PseudorapidityFilterCnt(-0.5, 0.5),
+                    &StandardCriteria::PseudorapidityFilterCnt(-1.0, 1.0),
+                    &StandardCriteria::PseudorapidityFilterCnt(-1.5, 1.5),
+                ];
+                let d_buf_criteria = vec![
+                    StandardDistributionCriteria::new(
+                        anlz::StandardDistributionCriteraDefiner::PdirTheta::<PHQMDBlock>,
+                        0.0, PI, 360, "N(Theta_p)".to_string()
+                    ),// as &dyn DistributionCritetia<'_, _, _>
+                    StandardDistributionCriteria::new(
+                        anlz::StandardDistributionCriteraDefiner::PNu::<PHQMDBlock>,
+                        -2.5, 2.5, 360, "N(Nu)".to_string()
+                    )
+                ];
+
+                let d_criteria = d_buf_criteria.iter().map(
+                    |x| {
+                        x as  &dyn DistributionCritetia<'_, _, _>
+                    }
+                ).collect::<Vec<_>>();
+                let start = SystemTime::now();
+                let phqmd_file = args.filenames.iter().fold(None, 
+                    |fo:Option<fmt::phqmd::PHQMDDataFile>, x| {
+                        println!(">> FILE READING [{}]", x);
+                        let f = File::open(&x).unwrap();
+                        if let Some(mut fo) = fo {
+                            fo.push_back(
+                                fmt::phqmd::PHQMDDataFile::upload(BufReader::new(f), &dict_EPOS).unwrap()
+                            );
+                            Some(fo)
+                        } else {
+                            Some(fmt::phqmd::PHQMDDataFile::upload(BufReader::new(f), &dict_EPOS).unwrap())
+                        }
+                    }
+                ).unwrap();
+                let end = start.elapsed().unwrap();
+                println!("READING DONE: {} s", end.as_secs_f64());
+                let analyzer = HEPEventAnalyzer::new(phqmd_file.get_blocks());
+                // analyzer.calculate_criteria(anlz::IS_FINAL_FILTER::<PHQMDBlock>, criteria, &dict_EPOS)
+                let distr_res = if calc_target.contains(&CalcTarget::Distribution) {
+                    analyzer.calculate_distribution_criteria(anlz::IS_FINAL_FILTER::<PHQMDBlock>, d_criteria, &dict_EPOS) 
+                } else {Default::default()};
+                let stat_res = if calc_target.contains(&CalcTarget::Statistics) {
+                    analyzer.calculate_criteria(anlz::IS_FINAL_FILTER::<PHQMDBlock>, criteria, &dict_EPOS)
+                } else {Default::default()};
+
+                (stat_res, distr_res)
+            },
+        }
+    };
+
+    let end = start.elapsed().unwrap();
 
     // headers = "E[GeV];\tB;\tL\n".as_bytes()
     println!("TOTAL DONE: {} s", end.as_secs_f64());
-    let mut f = File::create(args.o).unwrap();
-    f.write((headers.join(";\t") + "\n").as_bytes()).unwrap();
-    res.iter().for_each(|vals| {
-        f.write((vals.iter().map(ToString::to_string).collect::<Vec<_>>().join(";\t") + "\n").as_bytes())
-            .unwrap();
-    });
+    if calc_target.contains(&CalcTarget::Statistics) {
+        let headers = scalar_results.headers();
+        let res = scalar_results.values();
+        let mut f = File::create(args.o.clone()).unwrap();
+        f.write((headers.join(";\t") + "\n").as_bytes()).unwrap();
+        res.iter().for_each(|vals| {
+            f.write((vals.iter().map(ToString::to_string).collect::<Vec<_>>().join(";\t") + "\n").as_bytes())
+                .unwrap();
+        });
+    }
+
+    if calc_target.contains(&CalcTarget::Distribution) {
+        let suff = args.o.clone();
+
+        distr_results.iter().for_each(
+            |((pref, size, bins, vals))| {
+                let mut f = File::create(format!("{}-{}-{}", pref, size, suff)).unwrap();
+                f.write(
+                    format!(
+                        "# distribution : {}; total-items={}\n lbin;\t rbin;\t value\n",
+                        pref, size
+                    ).as_bytes()
+                ).unwrap();
+                
+                let s = bins.iter().zip(vals.iter()).map(
+                    |((a, b), v)| {
+                        format!("{};\t{};\t{}\n", a, b, v)
+                    }
+                ).reduce(
+                    |x, y| {
+                        x + &y
+                    }
+                ).unwrap();
+                f.write(s.as_bytes()).unwrap();
+            }
+        );
+
+        // f.write((headers.join(";\t") + "\n").as_bytes()).unwrap();
+        // res.iter().for_each(|vals| {
+        //     f.write((vals.iter().map(ToString::to_string).collect::<Vec<_>>().join(";\t") + "\n").as_bytes())
+        //         .unwrap();
+        // });
+    }
+
+
 }

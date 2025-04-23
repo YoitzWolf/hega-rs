@@ -1,5 +1,5 @@
 use rayon::prelude::*;
-use std::{borrow::Borrow, collections::HashSet, fmt::Debug, sync::Arc};
+use std::{collections::HashSet, fmt::Debug, sync::Arc};
 
 pub trait ScalarCriteria<'a, S, T>: Send + Sync//: PartialEq + Debug + Clone + Send
 where T: Particle<Decoder = S> + 'static,
@@ -34,6 +34,7 @@ def zpseudorapidity(v1):
 
 */
 
+/// z-pseudorapidity
 pub fn pseudorapidity((x, y, z): &(f64, f64, f64)) -> f64 {
     let theta = ( (z) / ((x*x+y*y+z*z).sqrt()) ).acos();
     - (theta / 2.0).tan().ln()
@@ -117,7 +118,7 @@ pub struct HEPEventAnalyzer<'a, Event: HEPEvent> {
 
 
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Default)]
 pub struct ScalarAnalyzerResults(Vec<String>, Vec<Vec<f64>>);
 
 impl ScalarAnalyzerResults {
@@ -130,10 +131,8 @@ pub fn IS_FINAL_FILTER<'a, Event: HEPEvent>(x: &'a Event::P, dec: &<Event::P as 
 impl<'a, Event: HEPEvent> HEPEventAnalyzer<'a, Event>
 where &'a[Event]: rayon::iter::IntoParallelIterator<Item = &'a Event>
 {
-
     pub fn new(events: &'a [Event]) -> Self { Self{events} }
 
-    ///
     /// `criteria` - scalar criteria to calculate, calculated **after** filter
     pub fn calculate_criteria // <T: Sync + ScalarCriteria<'a, <Event::P as Particle>::Decoder, Event::P>>
     (   
@@ -146,17 +145,9 @@ where &'a[Event]: rayon::iter::IntoParallelIterator<Item = &'a Event>
         <Event as HEPEvent>::P: 'static ,
         <Event::P as Particle>::Decoder: Sync
     {
-        // if !vec_criteria.is_empty() {
-        //     panic!("NOT IMPLEMENTED YET")
-        // }
-        //let criteria_vec = criteria.iter().map(|x| {(x.get_calculer(), 0f64)}).collect::<Vec<_>>();
-        //let criteria_vec = criteria.iter().map(|x| {(x.get_calculer(), 0f64)}).collect::<Vec<_>>();
         let headers = criteria.iter().map(|x| x.name() ).collect::<Vec<_>>();
-
         let criteria_vec = Arc::new(criteria);
-        //let filter = Arc::new(filter);
         let dec = Arc::new(dec);
-
         let results = self.events.par_iter().map(
                 |event| {
                     event.particles().filter(|x| {
@@ -175,5 +166,216 @@ where &'a[Event]: rayon::iter::IntoParallelIterator<Item = &'a Event>
                 }
         ).collect::<Vec<_>>();
         ScalarAnalyzerResults(headers, results)   
+    }
+
+    pub fn calculate_distribution_criteria // <T: Sync + ScalarCriteria<'a, <Event::P as Particle>::Decoder, Event::P>>
+    (   
+            &self,
+            filter: impl (Fn(&Event::P, &<Event::P as Particle>::Decoder) -> bool) + Sync,
+            criteria: Vec<& (impl DistributionCritetia<'a, <Event::P as Particle>::Decoder, Event::P> +?Sized) >,//Vec<T>,
+            dec: &<Event::P as Particle>::Decoder
+    ) -> Vec<(String, usize, Vec<(f64, f64)>, Vec<usize> )>
+    where
+        <Event as HEPEvent>::P: 'static ,
+        <Event::P as Particle>::Decoder: Sync
+    {
+        let criteria_vec = Arc::new(criteria);
+        let dec = Arc::new(dec);
+        let results = self.events.par_iter()
+        .fold(
+            || criteria_vec.iter().map(
+                |c|{
+                    let n=c.get_bins().len();
+                    (c, 0, vec![0usize; n])
+                }
+            ).collect::<Vec<(_, usize, Vec::<_>)>>(),
+            |mut res, event| {
+                let part = event.particles().filter(|x| filter(x, &dec));
+                res.iter_mut().for_each(
+                    |(crit, n, bins)| {
+                        // let (r_n, vs) = crit.get_criteria_values(
+                        //     part.clone(), &dec
+                        // );
+                        let bs = crit.get_bins().len();
+                        let mut r_n = 0;
+                        part.clone().map(
+                            |p| {
+                                crit.get_criteria_bin_index(&p, &dec)
+                            }
+                        ).filter(
+                            |&idx| {
+                                idx >= 0 && (idx as usize) < bs
+                            }
+                        ).for_each(
+                            |idx| {
+                                r_n += 1;
+                                bins[idx as usize] += 1;
+                            }
+                        );
+                        *n += r_n;
+                        // bins.iter_mut().zip(vs.iter()).for_each(
+                        //     |(a, b)| {
+                        //         *a += b;
+                        //     }
+                        // );
+                    }
+                );
+                res
+            }
+        ).reduce(
+            || criteria_vec.iter().map(
+                    |c|{
+                        let n=c.get_bins().len();
+                        (c, 0, vec![0usize; n])
+                    }
+            ).collect::<Vec::<_>>(),
+            |mut target, val| {
+                target.iter_mut().zip(val.iter()).for_each(
+                    |(a, b)| {
+                        if a.0.name() != b.0.name() {
+                            panic!("Wrong distribution ananlyze behaviour! Report this error");
+                        }
+                        a.1 += b.1;
+                        a.2.iter_mut().zip(b.2.iter()).for_each(|(x, y)| *x += y );
+                    }
+                );
+                target
+            }
+        ).iter().map(
+            |(a, b, c)| {
+                (a.name(), b.to_owned(), a.get_bins().to_vec(), c.to_owned())
+            }
+        ).collect::<Vec::<_>>();
+        results
+    }
+}
+
+/// Distribution criteria trait
+/// use to calculate distribution of some event characteristics
+/// for example, getting distribution of momentum of particles per each event
+pub trait DistributionCritetia<'a, S, T>: Send + Sync//: PartialEq + Debug + Clone + Send
+where T: Particle<Decoder = S> + 'static,
+{
+    /// get bins (HAVE TO BE SET BEFORE CALCULATING DISTRIBUTION)
+    fn get_bins(&self) -> &[(f64, f64)];
+
+    /// get for whole set of particles
+    /// 
+    /// returns (
+    ///     .0: count of particles; 
+    ///     .1: vec of len same as bins len, 
+    ///         items are bin counters
+    /// )
+    // fn get_criteria_values(&self, ps: impl Iterator<Item=&'a T>, dec: &S) -> (usize, Vec<usize>);
+    // where V: ;// Clone + Send + Sync + 'a; impl Iterator<Item=&Self::P> + Clone;
+    
+    /// get bin index for current particle
+    /// return negative value if param of particle is less than minimum bin value
+    fn get_criteria_bin_index(&self, p: &T, dec: &S) -> i64;// Clone + Send + Sync + 'a;
+
+    fn name(&self) -> String;
+}
+
+///
+pub struct ParticleCodeSelector {
+    codes: HashSet<i64>
+}
+
+
+pub enum StandardDistributionCriteraDefiner<Event: HEPEvent> {
+
+    /// distribution of particle momentum angle direction
+    /// angle theta - between P and Z vectors
+    /// bin : -pi, pi
+    /// bin value: counter
+    PdirTheta,
+    /// pseudorapidity distribution
+    PNu,
+    Custom(Box::<dyn (Fn(&Event::P, &<Event::P as Particle>::Decoder) -> f64) + Sync + Send>)
+}
+
+pub struct StandardDistributionCriteria<Event: HEPEvent> {
+    definer: StandardDistributionCriteraDefiner<Event>,
+    min: f64,
+    max: f64,
+    dx: f64,
+    bins: Vec<(f64, f64)>,
+    name: String,
+}
+
+impl<Event: HEPEvent> StandardDistributionCriteria<Event> {
+    pub fn new(definer: StandardDistributionCriteraDefiner<Event>,
+               min: f64, max: f64, bin_cnt: usize, name: String
+    ) -> Self {
+        let dx: f64 = (max - min) / (bin_cnt as f64);
+        Self {
+            definer,
+            min,
+            max,
+            dx,
+            bins: {
+                (0..bin_cnt).map(
+                    |i| {
+                        let i = i as f64;
+                        (min+dx*i, min+dx*(i+1.))
+                    }
+                ).collect()
+            },
+            name
+        }
+    }
+}
+
+impl<'a, S, Event: HEPEvent> DistributionCritetia<'a, S, Event::P> for StandardDistributionCriteria<Event> 
+    where Event::P: Particle<Decoder = S> + 'static,
+{
+    fn get_bins(&self) -> &[(f64, f64)] {
+        &self.bins
+    }
+
+    /*fn get_criteria_values(&self, ps: impl Iterator<Item=&'a Event::P>, dec: &S) -> (usize, Vec<usize>)
+    {
+        let mut n = 0;
+        let mut vals = vec![0; self.bins.len()];
+        ps.into_iter().map(
+            |p| {
+                self.get_criteria_bin_index(&p, dec)
+            }
+        ).filter(
+            |&idx| {
+                idx >= 0 && (idx as usize) < self.bins.len()
+            }
+        ).for_each(
+            |idx| {
+                n += 1;
+                vals[idx as usize] += 1;
+            }
+        );
+        (n, vals)
+    } */
+   
+    fn get_criteria_bin_index(&self, p: &Event::P, dec: &S) -> i64 {
+        //let bin_cnt = self.bins.len();
+        // let min = self.bins[0].0;
+        // let max = self.bins[bin_cnt-1usize].1;
+        // let dx: f64 = (min - max) / (bin_cnt as f64);
+        let value = match &self.definer {
+            StandardDistributionCriteraDefiner::PdirTheta => {
+                let (x, y, z) = p.momentum(dec);
+                ( (z) / ((x*x+y*y+z*z).sqrt()) ).acos()
+            },
+            StandardDistributionCriteraDefiner::PNu => {
+                pseudorapidity(p.momentum(dec))
+            },
+            StandardDistributionCriteraDefiner::Custom(cst) => {
+                cst.as_ref()(p, dec)
+            },
+        };
+        // println!(">>>{} :: {}", value, ((value-self.min) / self.dx).ceil() as i64);
+        ((value-self.min) / self.dx).ceil() as i64
+    }
+
+    fn name(&self) -> String {
+        self.name.clone()
     }
 }
