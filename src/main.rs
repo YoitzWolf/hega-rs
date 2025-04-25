@@ -13,6 +13,16 @@ use fmt::{decoder::EposDict, generic::GenericDataContainer, oscar::OSCEposBlock,
 use clap::{Parser, *};
 
 
+const DEG_MIN: f64 = 0.0;
+const DEG_MAX: f64 = PI + 0.1;
+const DEG_CNT: usize = 360;
+
+const NU_MIN: f64 = -15.0;
+const NU_MAX: f64 = 15.0;
+const NU_CNT: usize = 1000;
+
+
+
 #[derive(
     clap::ValueEnum, Clone, Debug, Default
 )]
@@ -159,11 +169,11 @@ fn main() {
                 let d_buf_criteria = vec![
                     StandardDistributionCriteria::new(
                         anlz::StandardDistributionCriteraDefiner::PdirTheta::<OSCEposBlock>,
-                        0.0, PI, 360, "N(Theta_p)".to_string()
+                        DEG_MIN, DEG_MAX, DEG_CNT, "N(Theta_p)".to_string()
                     ),// as &dyn DistributionCritetia<'_, _, _>
                     StandardDistributionCriteria::new(
                         anlz::StandardDistributionCriteraDefiner::PNu::<OSCEposBlock>,
-                        -1.5, 1.5, 360, "N(Nu)".to_string()
+                        NU_MIN, NU_MAX, NU_CNT, "N(Nu)".to_string()
                     )
                 ];
                 let d_criteria = d_buf_criteria.iter().map(
@@ -212,11 +222,11 @@ fn main() {
                 let d_buf_criteria = vec![
                     StandardDistributionCriteria::new(
                         anlz::StandardDistributionCriteraDefiner::PdirTheta::<OSCEposBlock>,
-                        0.0, PI, 360, "N(Theta_p)".to_string()
+                        DEG_MIN, DEG_MAX, DEG_CNT, "N(Theta_p)".to_string()
                     ),// as &dyn DistributionCritetia<'_, _, _>
                     StandardDistributionCriteria::new(
                         anlz::StandardDistributionCriteraDefiner::PNu::<OSCEposBlock>,
-                        -1.5, 1.5, 360, "N(Nu)".to_string()
+                        NU_MIN, NU_MAX, NU_CNT, "N(Nu)".to_string()
                     )
                 ];
 
@@ -266,11 +276,11 @@ fn main() {
                 let d_buf_criteria = vec![
                     StandardDistributionCriteria::new(
                         anlz::StandardDistributionCriteraDefiner::PdirTheta::<PHQMDBlock>,
-                        0.0, PI, 360, "N(Theta_p)".to_string()
+                        DEG_MIN, DEG_MAX, DEG_CNT, "N(Theta_p)".to_string()
                     ),// as &dyn DistributionCritetia<'_, _, _>
                     StandardDistributionCriteria::new(
                         anlz::StandardDistributionCriteraDefiner::PNu::<PHQMDBlock>,
-                        -2.5, 2.5, 360, "N(Nu)".to_string()
+                        NU_MIN, NU_MAX, NU_CNT, "N(Nu)".to_string()
                     )
                 ];
 
