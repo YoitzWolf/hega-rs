@@ -1,5 +1,7 @@
 use rayon::prelude::*;
-use std::{collections::HashSet, fmt::Debug, sync::Arc};
+use std::{collections::HashSet, f64::consts::PI, fmt::Debug, sync::Arc};
+
+use crate::fmt::oscar::OSCEposBlock;
 
 pub trait ScalarCriteria<'a, S, T>: Send + Sync//: PartialEq + Debug + Clone + Send
 where T: Particle<Decoder = S> + 'static,
@@ -324,6 +326,12 @@ impl<Event: HEPEvent> StandardDistributionCriteria<Event> {
             name
         }
     }
+}
+
+#[test]
+pub fn cuttest() {
+    let s = StandardDistributionCriteria::new(StandardDistributionCriteraDefiner::PNu::<OSCEposBlock>, 0., PI+0.1, 2, "123".to_string());
+    println!("{:?}", s.get_bins());
 }
 
 impl<'a, S, Event: HEPEvent> DistributionCritetia<'a, S, Event::P> for StandardDistributionCriteria<Event> 
