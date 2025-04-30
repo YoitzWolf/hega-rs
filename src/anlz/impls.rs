@@ -5,6 +5,10 @@ impl Particle for OscarParticle {
 
     type Decoder = EposDict;
 
+    fn code(&self, dec: &Self::Decoder) -> i32 {
+        self.code
+    }
+
     fn momentum_energy(&self, _dct: &EposDict) -> f64 {
         // self.p0
         (self.p.0.powi(2) + self.p.1.powi(2) + self.p.2.powi(2)).sqrt()
@@ -78,6 +82,10 @@ impl HEPEvent for OSCEposBlock {
 impl Particle for PHQMDParticle {
 
     type Decoder = EposDict;
+
+    fn code(&self, dec: &Self::Decoder) -> i32 {
+        self.code
+    }
 
     fn energy(&self, dec: &EposDict) -> f64 {
         // SELF.E is worse!!!!

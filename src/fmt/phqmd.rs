@@ -109,6 +109,10 @@ impl<'a, 'b> GenericDataContainer<'a, 'b> for PHQMDDataFile<'b> {
         &self.events
     }
 
+    fn borrow_blocks(self) -> Vec<Self::Block> {
+        self.events
+    }
+
     fn upload<T: Sized + std::io::Read>(data: std::io::BufReader<T>, decoder: &'b Self::Decoder) -> Result<Self, std::io::Error> {
 
         let mut dit = data.lines().enumerate();

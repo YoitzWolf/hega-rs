@@ -15,6 +15,8 @@ pub trait GenericDataContainer<'a, 'b>: Sized {
 
     fn get_blocks(&self) -> &Vec<Self::Block>;
 
+    fn borrow_blocks(self)  -> Vec<Self::Block>;
+
     fn upload<T: Sized + std::io::Read>(data: BufReader<T>, decoder: &'b Self::Decoder) -> Result<Self, std::io::Error>;
 
     fn push_back(&mut self, t: Self);

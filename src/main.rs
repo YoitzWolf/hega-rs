@@ -7,19 +7,21 @@ use std::{
     collections::HashSet, f64::consts::PI, fs::File, io::{BufReader, Write}
 };
 
-use anlz::{DistributionCritetia, HEPEventAnalyzer, ScalarCriteria, StandardCriteria, StandardDistributionCriteria};
+use anlz::{fncs::lab_momentum, DistributionCritetia, HEPEvent, HEPEventAnalyzer, ScalarCriteria, StandardCriteria, StandardDistributionCriteria};
 use fmt::{decoder::EposDict, generic::GenericDataContainer, oscar::OSCEposBlock, phqmd::PHQMDBlock};
+
+use rayon::iter::{IntoParallelRefMutIterator, ParallelIterator};
 
 use clap::{Parser, *};
 
 
 const DEG_MIN: f64 = 0.0;
-const DEG_MAX: f64 = PI + 0.1;
+const DEG_MAX: f64 = PI + PI / 360.0;
 const DEG_CNT: usize = 360;
 
-const NU_MIN: f64 = -15.0;
-const NU_MAX: f64 = 15.0;
-const NU_CNT: usize = 1000;
+const NU_MIN: f64 = -30.0;
+const NU_MAX: f64 = 30.0;
+const NU_CNT: usize = 2000;
 
 
 
@@ -60,6 +62,10 @@ pub struct FileInput {
 struct Args {
     /// Type of file
     ftype: AcceptedTypes,
+
+    /// Take if need to check in Lab system [change Pz momentum]
+    #[clap(long)]
+    lab: bool,
 
     /// List of calculation targets
     #[clap(short, long, num_args = 1.., value_delimiter = ',', default_value="statistics")]
@@ -198,7 +204,23 @@ fn main() {
                 ).unwrap();
                 let end = start.elapsed().unwrap();
                 println!("READING DONE: {} s", end.as_secs_f64());
-                let analyzer = HEPEventAnalyzer::new(epos_file.get_blocks());
+                let events = {
+                    let mut events = epos_file.borrow_blocks();
+                    if args.lab {
+                        events.par_iter_mut().for_each(
+                            |x|{
+                                x.event.iter_mut().for_each(
+                                    |p| {
+                                        let mp = lab_momentum(p, &dict_EPOS);
+                                        p.p = mp;
+                                    }
+                                );
+                            }
+                        );
+                    }
+                    events
+                };
+                let analyzer = HEPEventAnalyzer::new(&events);
                 
                 let distr_res = if calc_target.contains(&CalcTarget::Distribution) {
                     analyzer.calculate_distribution_criteria(anlz::IS_FINAL_FILTER::<OSCEposBlock>, d_criteria, &dict_EPOS) 
@@ -252,8 +274,25 @@ fn main() {
                 ).unwrap();
                 let end = start.elapsed().unwrap();
                 println!("READING DONE: {} s", end.as_secs_f64());
-                let analyzer = HEPEventAnalyzer::new(urqmd_file.get_blocks());
-                //analyzer.calculate_criteria(anlz::IS_FINAL_FILTER::<OSCEposBlock>, criteria, &dict_EPOS)
+
+                let events = {
+                    let mut events = urqmd_file.borrow_blocks();
+                    if args.lab {
+                        events.par_iter_mut().for_each(
+                            |x|{
+                                x.event.iter_mut().for_each(
+                                    |p| {
+                                        let mp = lab_momentum(p, &dict_EPOS);
+                                        p.p = mp;
+                                    }
+                                );
+                            }
+                        );
+                    }
+                    events
+                };
+                let analyzer = HEPEventAnalyzer::new(&events);
+                // analyzer.calculate_criteria(anlz::IS_FINAL_FILTER::<OSCEposBlock>, criteria, &dict_EPOS)
                 
                 let distr_res = if calc_target.contains(&CalcTarget::Distribution) {
                     analyzer.calculate_distribution_criteria(anlz::IS_FINAL_FILTER::<OSCEposBlock>, d_criteria, &dict_EPOS) 
@@ -281,6 +320,14 @@ fn main() {
                     StandardDistributionCriteria::new(
                         anlz::StandardDistributionCriteraDefiner::PNu::<PHQMDBlock>,
                         NU_MIN, NU_MAX, NU_CNT, "N(Nu)".to_string()
+                    ),
+                    StandardDistributionCriteria::new(
+                        anlz::StandardDistributionCriteraDefiner::PNu_selected::<PHQMDBlock>(vec![2212, -2212]),
+                        NU_MIN, NU_MAX, NU_CNT, "N(Nu, [p, ~p])".to_string()
+                    ),
+                    StandardDistributionCriteria::new(
+                        anlz::StandardDistributionCriteraDefiner::PNu_selected::<PHQMDBlock>(vec![211, -211]),
+                        NU_MIN, NU_MAX, NU_CNT, "N(Nu, [pi+, pi-])".to_string()
                     )
                 ];
 
@@ -306,7 +353,23 @@ fn main() {
                 ).unwrap();
                 let end = start.elapsed().unwrap();
                 println!("READING DONE: {} s", end.as_secs_f64());
-                let analyzer = HEPEventAnalyzer::new(phqmd_file.get_blocks());
+                let events = {
+                    let mut events = phqmd_file.borrow_blocks();
+                    if args.lab {
+                        events.par_iter_mut().for_each(
+                            |x|{
+                                x.event.iter_mut().for_each(
+                                    |p| {
+                                        let mp = lab_momentum(p, &dict_EPOS);
+                                        p.p = mp;
+                                    }
+                                );
+                            }
+                        );
+                    }
+                    events
+                };
+                let analyzer = HEPEventAnalyzer::new(&events);
                 // analyzer.calculate_criteria(anlz::IS_FINAL_FILTER::<PHQMDBlock>, criteria, &dict_EPOS)
                 let distr_res = if calc_target.contains(&CalcTarget::Distribution) {
                     analyzer.calculate_distribution_criteria(anlz::IS_FINAL_FILTER::<PHQMDBlock>, d_criteria, &dict_EPOS) 
@@ -322,12 +385,21 @@ fn main() {
 
     let end = start.elapsed().unwrap();
 
+
+    let sysprx = {
+        if args.lab {
+            "Lab"
+        } else {
+            ""
+        }
+    }.to_string();
+
     // headers = "E[GeV];\tB;\tL\n".as_bytes()
     println!("TOTAL DONE: {} s", end.as_secs_f64());
     if calc_target.contains(&CalcTarget::Statistics) {
         let headers = scalar_results.headers();
         let res = scalar_results.values();
-        let mut f = File::create(args.o.clone()).unwrap();
+        let mut f = File::create(sysprx.clone() + &args.o.clone()).unwrap();
         f.write((headers.join(";\t") + "\n").as_bytes()).unwrap();
         res.iter().for_each(|vals| {
             f.write((vals.iter().map(ToString::to_string).collect::<Vec<_>>().join(";\t") + "\n").as_bytes())
@@ -340,7 +412,7 @@ fn main() {
 
         distr_results.iter().for_each(
             |((pref, size, bins, vals))| {
-                let mut f = File::create(format!("{}-{}-{}", pref, size, suff)).unwrap();
+                let mut f = File::create(format!("{}{}-{}-{}", sysprx, pref, size, suff)).unwrap();
                 f.write(
                     format!(
                         "# distribution : {}; total-items={}\n lbin;\t rbin;\t value\n",

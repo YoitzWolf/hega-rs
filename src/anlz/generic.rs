@@ -1,5 +1,6 @@
 use rayon::prelude::*;
 use std::{collections::HashSet, f64::consts::PI, fmt::Debug, sync::Arc};
+use super::{fncs::*, impls};
 
 use crate::fmt::oscar::OSCEposBlock;
 
@@ -22,25 +23,6 @@ pub enum StandardCriteria {
     PseudorapidityFilterCnt(f64, f64),
 }
 
-
-/*
-
-    
-def pseudorapidity(v1, v2):
-    theta = np.arccos(v1.scal(v2) / (v1.len() * v2.len()))
-    return -np.log(np.tan(theta/2))
-
-def zpseudorapidity(v1):
-    # return abs(np.arctanh(v1.z / v1.len()))
-    return pseudorapidity(v1, Vec(0, 0, 1))
-
-*/
-
-/// z-pseudorapidity
-pub fn pseudorapidity((x, y, z): &(f64, f64, f64)) -> f64 {
-    let theta = ( (z) / ((x*x+y*y+z*z).sqrt()) ).acos();
-    - (theta / 2.0).tan().ln()
-}
 
 impl<'a, S, T> ScalarCriteria<'a, S, T> for StandardCriteria
 where T: Particle<Decoder = S> + 'static, {
@@ -107,6 +89,8 @@ pub trait Particle {
     fn l_charge(&self, dec: &Self::Decoder) -> f64;
 
     fn is_final(&self, dec: &Self::Decoder) -> bool;
+
+    fn code(&self, dec: &Self::Decoder) -> i32;
 }
 
 pub trait HEPEvent {
@@ -175,7 +159,7 @@ where &'a[Event]: rayon::iter::IntoParallelIterator<Item = &'a Event>
             &self,
             filter: impl (Fn(&Event::P, &<Event::P as Particle>::Decoder) -> bool) + Sync,
             criteria: Vec<& (impl DistributionCritetia<'a, <Event::P as Particle>::Decoder, Event::P> +?Sized) >,//Vec<T>,
-            dec: &<Event::P as Particle>::Decoder
+            dec: &<Event::P as Particle>::Decoder,
     ) -> Vec<(String, usize, Vec<(f64, f64)>, Vec<usize> )>
     where
         <Event as HEPEvent>::P: 'static ,
@@ -192,7 +176,8 @@ where &'a[Event]: rayon::iter::IntoParallelIterator<Item = &'a Event>
                 }
             ).collect::<Vec<(_, usize, Vec::<_>)>>(),
             |mut res, event| {
-                let part = event.particles().filter(|x| filter(x, &dec));
+                let mut part = event.particles().filter(|x| filter(x, &dec));
+                // criteria calculation for event
                 res.iter_mut().for_each(
                     |(crit, n, bins)| {
                         // let (r_n, vs) = crit.get_criteria_values(
@@ -293,6 +278,7 @@ pub enum StandardDistributionCriteraDefiner<Event: HEPEvent> {
     PdirTheta,
     /// pseudorapidity distribution
     PNu,
+    PNu_selected(Vec<i32>),
     Custom(Box::<dyn (Fn(&Event::P, &<Event::P as Particle>::Decoder) -> f64) + Sync + Send>)
 }
 
@@ -375,6 +361,14 @@ impl<'a, S, Event: HEPEvent> DistributionCritetia<'a, S, Event::P> for StandardD
             StandardDistributionCriteraDefiner::PNu => {
                 pseudorapidity(p.momentum(dec))
             },
+            StandardDistributionCriteraDefiner::PNu_selected(v) => {
+                if v.contains(&p.code(dec)) {
+                    pseudorapidity(p.momentum(dec))
+                } else {
+                    self.max + self.dx + self.dx
+                }
+                
+            }
             StandardDistributionCriteraDefiner::Custom(cst) => {
                 cst.as_ref()(p, dec)
             },

@@ -126,6 +126,10 @@ impl<'a, 'b> GenericDataContainer<'a, 'b> for OSCEposDataFile<'b> {
         &self.events
     }
 
+    fn borrow_blocks(self) -> Vec<Self::Block> {
+        self.events
+    }
+
     fn upload<T: Sized + std::io::Read>(data: std::io::BufReader<T>, decoder: &'b Self::Decoder) -> Result<Self, std::io::Error> {
         match data.lines().try_fold(
             (
@@ -246,6 +250,10 @@ impl<'a, 'b> GenericDataContainer<'a, 'b> for OSC97UrQMDDataFile<'b> {
 
     fn get_blocks(&self) -> &Vec<Self::Block> {
         &self.events
+    }
+
+    fn borrow_blocks(self)  -> Vec<Self::Block> {
+        self.events
     }
 
     fn upload<T: Sized + std::io::Read>(data: std::io::BufReader<T>, decoder: &'b Self::Decoder) -> Result<Self, std::io::Error> {
