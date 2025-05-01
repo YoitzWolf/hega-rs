@@ -279,6 +279,7 @@ pub enum StandardDistributionCriteraDefiner<Event: HEPEvent> {
     /// pseudorapidity distribution
     PNu,
     PNu_selected(Vec<i32>),
+    PTheta_selected(Vec<i32>),
     Custom(Box::<dyn (Fn(&Event::P, &<Event::P as Particle>::Decoder) -> f64) + Sync + Send>)
 }
 
@@ -372,6 +373,15 @@ impl<'a, S, Event: HEPEvent> DistributionCritetia<'a, S, Event::P> for StandardD
             StandardDistributionCriteraDefiner::Custom(cst) => {
                 cst.as_ref()(p, dec)
             },
+            StandardDistributionCriteraDefiner::PTheta_selected(v) => {
+                if v.contains(&p.code(dec)) {
+                    let (x, y, z) = p.momentum(dec);
+                    ( (z) / ((x*x+y*y+z*z).sqrt()) ).acos()
+                } else {
+                    self.max + self.dx + self.dx
+                }
+                
+            }
         };
         // println!(">>>{} :: {}", value, ((value-self.min) / self.dx).ceil() as i64);
         ((value-self.min) / self.dx).ceil() as i64

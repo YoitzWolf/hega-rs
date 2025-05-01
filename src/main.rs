@@ -321,6 +321,7 @@ fn main() {
                         anlz::StandardDistributionCriteraDefiner::PNu::<PHQMDBlock>,
                         NU_MIN, NU_MAX, NU_CNT, "N(Nu)".to_string()
                     ),
+                    // ---------------------------------------
                     StandardDistributionCriteria::new(
                         anlz::StandardDistributionCriteraDefiner::PNu_selected::<PHQMDBlock>(vec![2212, -2212]),
                         NU_MIN, NU_MAX, NU_CNT, "N(Nu, [p, ~p])".to_string()
@@ -328,6 +329,47 @@ fn main() {
                     StandardDistributionCriteria::new(
                         anlz::StandardDistributionCriteraDefiner::PNu_selected::<PHQMDBlock>(vec![211, -211]),
                         NU_MIN, NU_MAX, NU_CNT, "N(Nu, [pi+, pi-])".to_string()
+                    ),
+                    StandardDistributionCriteria::new(
+                        anlz::StandardDistributionCriteraDefiner::PNu_selected::<PHQMDBlock>(vec![111, -111]),
+                        NU_MIN, NU_MAX, NU_CNT, "N(Nu, [pi0, ~pi0])".to_string()
+                    ),
+                    StandardDistributionCriteria::new(
+                        anlz::StandardDistributionCriteraDefiner::PNu_selected::<PHQMDBlock>(vec![11, -11]),
+                        NU_MIN, NU_MAX, NU_CNT, "N(Nu, [e, ~e])".to_string()
+                    ),
+                    StandardDistributionCriteria::new(
+                        anlz::StandardDistributionCriteraDefiner::PNu_selected::<PHQMDBlock>(vec![13, -13]),
+                        NU_MIN, NU_MAX, NU_CNT, "N(Nu, [mu, ~mu])".to_string()
+                    ),
+                    StandardDistributionCriteria::new(
+                        anlz::StandardDistributionCriteraDefiner::PNu_selected::<PHQMDBlock>(vec![2112, -2112]),
+                        NU_MIN, NU_MAX, NU_CNT, "N(Nu, [n, ~n])".to_string()
+                    ),
+                    // ---------------------------------------
+                    StandardDistributionCriteria::new(
+                        anlz::StandardDistributionCriteraDefiner::PTheta_selected::<PHQMDBlock>(vec![2212, -2212]),
+                        DEG_MIN, DEG_MAX, DEG_CNT, "N(Theta_p), [p, ~p])".to_string()
+                    ),
+                    StandardDistributionCriteria::new(
+                        anlz::StandardDistributionCriteraDefiner::PTheta_selected::<PHQMDBlock>(vec![211, -211]),
+                        DEG_MIN, DEG_MAX, DEG_CNT, "N(Theta_p), [pi+, pi-])".to_string()
+                    ),
+                    StandardDistributionCriteria::new(
+                        anlz::StandardDistributionCriteraDefiner::PTheta_selected::<PHQMDBlock>(vec![111, -111]),
+                        DEG_MIN, DEG_MAX, DEG_CNT, "N(Theta_p), [pi0, ~pi0])".to_string()
+                    ),
+                    StandardDistributionCriteria::new(
+                        anlz::StandardDistributionCriteraDefiner::PTheta_selected::<PHQMDBlock>(vec![11, -11]),
+                        DEG_MIN, DEG_MAX, DEG_CNT, "N(Theta_p), [e, ~e])".to_string()
+                    ),
+                    StandardDistributionCriteria::new(
+                        anlz::StandardDistributionCriteraDefiner::PTheta_selected::<PHQMDBlock>(vec![13, -13]),
+                        DEG_MIN, DEG_MAX, DEG_CNT, "N(Theta_p), [mu, ~mu])".to_string()
+                    ),
+                    StandardDistributionCriteria::new(
+                        anlz::StandardDistributionCriteraDefiner::PTheta_selected::<PHQMDBlock>(vec![2112, -2112]),
+                        DEG_MIN, DEG_MAX, DEG_CNT, "N(Theta_p), [n, ~n])".to_string()
                     )
                 ];
 
