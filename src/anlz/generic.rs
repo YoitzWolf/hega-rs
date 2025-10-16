@@ -2,7 +2,7 @@ use rayon::prelude::*;
 use std::{collections::HashSet, f64::consts::PI, fmt::Debug, sync::Arc};
 use super::{fncs::*, impls};
 
-use crate::fmt::oscar::OSCEposBlock;
+use crate::fmt::{oscar::{OSCEposBlock, OSCEposDataFile}, phqmd::PHQMDDataFile};
 
 pub trait ScalarCriteria<'a, S, T>: Send + Sync//: PartialEq + Debug + Clone + Send
 where T: Particle<Decoder = S> + 'static,
@@ -283,6 +283,68 @@ pub enum StandardDistributionCriteraDefiner<Event: HEPEvent> {
     Custom(Box::<dyn (Fn(&Event::P, &<Event::P as Particle>::Decoder) -> f64) + Sync + Send>)
 }
 
+#[macro_export]
+macro_rules! templated_std_crit_definer {
+    /*(
+        $g: ident::$i: ident,
+        $($tmpl_in:tt)*
+    ) => {
+        $g::<$($tmpl_in)*>::$i 
+    };*/
+
+    (
+        $g: ident::$i: ident $( ( $($arg:expr,)* ) )?,
+        $($tmpl_in:tt)*
+    ) => {
+        $g::<$($tmpl_in)*>::$i $( ( $($arg,)* ) )?
+    };
+}
+
+#[macro_export]
+macro_rules! standard_criteria {
+    /*(
+        $Definer: ident::$DefinerVeriant: ident,
+        $DataFile:path,
+        $DEG_MIN:expr, $DEG_MAX:expr, $DEG_CNT:expr, $NAME:expr
+    ) => {
+        StandardDistributionCriteria::new(
+            templated_std_crit_definer!(
+                $Definer::$DefinerVeriant,
+                <$DataFile as crate::fmt::generic::GenericDataContainer>::Block
+            ),
+            $DEG_MIN, $DEG_MAX, $DEG_CNT, $NAME
+        )
+    };*/
+
+    (
+        $Definer: ident::$DefinerVeriant: ident,
+        $DataFile:path,
+        $DEG_MIN:expr, $DEG_MAX:expr, $DEG_CNT:expr, $NAME:expr $(, arg=$($ARG:expr,)*)?
+    ) => {
+        StandardDistributionCriteria::new(
+            templated_std_crit_definer!(
+                $Definer::$DefinerVeriant $( ( $($ARG, )* ))?,
+                <$DataFile as crate::fmt::generic::GenericDataContainer>::Block
+            ),
+            $DEG_MIN, $DEG_MAX, $DEG_CNT, $NAME
+        )
+    };
+}
+
+#[test]
+fn test_dcrit_macro_creation() {
+    /*let criteria = standard_criteria!(
+        StandardDistributionCriteraDefiner::PdirTheta,
+        PHQMDDataFile<'_>,
+        0., 0., 0usize, "test".to_string()
+    );*/
+    /*let x = templated!(
+        StandardDistributionCriteraDefiner::PdirTheta,
+        <OSCEposDataFile<'_> as crate::fmt::generic::GenericDataContainer>::Block
+    );*/
+}
+
+
 pub struct StandardDistributionCriteria<Event: HEPEvent> {
     definer: StandardDistributionCriteraDefiner<Event>,
     min: f64,
@@ -378,6 +440,7 @@ impl<'a, S, Event: HEPEvent> DistributionCritetia<'a, S, Event::P> for StandardD
                     let (x, y, z) = p.momentum(dec);
                     ( (z) / ((x*x+y*y+z*z).sqrt()) ).acos()
                 } else {
+                    // println!("[WARNING] {:?} out of context", p);
                     self.max + self.dx + self.dx
                 }
                 

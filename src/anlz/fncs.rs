@@ -48,6 +48,16 @@ pub fn rapidity<P: Particle>(p: &P, dec: &P::Decoder ) -> f64 {
 
 
 #[test]
+fn test_theta() {
+    let (x, y, z) = (1.0 as f64, 1.0 as f64, 1.0 as f64);
+     let t = ( (z) / ((x*x+y*y+z*z).sqrt()) ).acos();
+     let t = 0.25 as f64;
+     let p = -(((t as f64) / 2.0).tan()).ln();
+    println!("{} rad, nu={}", t, p);
+    println!("angle as degrees {}", t.to_degrees())
+}
+
+#[test]
 fn test_lab_mom() {
 
     let dict_lepto = EposDict::upload(

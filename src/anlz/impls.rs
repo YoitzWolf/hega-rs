@@ -43,7 +43,7 @@ impl Particle for OscarParticle {
                     |&x| { if (x > 0) { 1. } else if (x < 0) {-1.} else {0.} }
                 ).sum::<f64>() / 3.0
         } else {
-            -if let Some(pd) = dct.get(&-self.code) {
+            -(if let Some(pd) = dct.get(&-self.code) {
                 [   pd.ifl1.unwrap_or_else(|| { println!("[WARNING::EPOS]: Using undefined values (anti)! {:?}", pd); 0 }),
                     pd.ifl2.unwrap_or_else(|| { println!("[WARNING::EPOS]: Using undefined values (anti)! {:?}", pd); 0 }),
                     pd.ifl3.unwrap_or_else(|| { println!("[WARNING::EPOS]: Using undefined values (anti)! {:?}", pd); 0 })
@@ -52,7 +52,7 @@ impl Particle for OscarParticle {
                     ).sum::<f64>() / 3.0
             } else {
                 panic!("Undefined Particle!, {:?}", self)
-            }
+            })
         }
     }
 

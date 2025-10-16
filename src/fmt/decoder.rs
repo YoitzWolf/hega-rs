@@ -82,6 +82,8 @@ impl EposDictParticle {
     }
 }
 
+
+#[derive(Clone)]
 pub enum DctCoding {
     EPOS,
     PDG,
