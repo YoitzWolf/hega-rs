@@ -134,4 +134,17 @@ impl EposDict {
         self.dct.keys()
     }
 
+    pub fn get_particle_code(&self, name: &str) -> Option<i32> {
+        let antip = name.trim_start_matches("-");
+        let isantip = name.starts_with('-');
+        for (index, part) in self.dct.iter() {
+            if part.name.eq(name) {
+                return Some(*index);
+            } else if isantip && part.name.eq( &antip ) {
+                return Some(- *index);
+            }
+        }
+        None
+    }
+
 }

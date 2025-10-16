@@ -58,7 +58,10 @@ fn main() {
             ],
             ( StandardDistributionCriteraDefiner::PdirTheta, DEG_MIN, DEG_MAX, DEG_CNT, "N(Theta_p)".to_string() ),
             ( StandardDistributionCriteraDefiner::PNu, NU_MIN, NU_MAX, NU_CNT, "N(Nu)".to_string() ),
-            ( StandardDistributionCriteraDefiner::PNu_selected, NU_MIN, NU_MAX, NU_CNT, "N(Nu, [p, ~p])".to_string(), arg=( vec![1, -1], ) )
+            ( StandardDistributionCriteraDefiner::PNu_selected, NU_MIN, NU_MAX, NU_CNT, "N(Nu, [p, ~p])".to_string(), arg=( {
+                let code = dict.get_particle_code("Proton").unwrap();
+                vec![code, -code]
+            }, ) )
             //( StandardDistributionCriteraDefiner::PdirTheta, DEG_MIN, DEG_MAX, DEG_CNT, "N(Theta_p)".to_string() ),
         )
         
