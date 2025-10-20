@@ -25,8 +25,8 @@ pub enum CalcTarget {
     clap::ValueEnum, Clone, Debug, Default, PartialEq, Eq, Hash
 )]
 pub enum CalcMode {
-    #[default]
     /// final result checkout
+    #[default]
     Default,
     /// calculate checkout to each timestep.
     /// 
