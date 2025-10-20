@@ -18,7 +18,7 @@ use fmt::{decoder::EposDict, generic::GenericDataContainer, oscar::OSCEposBlock,
 use crate::{anlz::{HEPEvent, StandardDistributionCriteraDefiner}, fmt::{oscar::OSC97UrQMDDataFile, phqmd::PHQMDDataFile}};
 use crate::fmt::oscar::OSCEposDataFile;
 
-
+const VERSION: &str = env!("CARGO_PKG_VERSION");
 
 const DEG_MIN: f64 = 0.0;
 const DEG_MAX: f64 = PI + PI / 360.0;
@@ -55,13 +55,17 @@ fn main() {
                 &StandardCriteria::PseudorapidityFilterCnt(-0.5, 0.5),
                 &StandardCriteria::PseudorapidityFilterCnt(-1.0, 1.0),
                 &StandardCriteria::PseudorapidityFilterCnt(-1.5, 1.5),
+                &StandardCriteria::PseudorapidityFilterCnt(3.5, 5.8),
+                &StandardCriteria::PseudorapidityFilterCnt(-5.8, 3.5),
+                &StandardCriteria::PseudorapidityFilterCnt(4.4, 5.8),
+                &StandardCriteria::PseudorapidityFilterCnt(-5.8, 4.4),
             ],
             ( StandardDistributionCriteraDefiner::PdirTheta, DEG_MIN, DEG_MAX, DEG_CNT, "N(Theta_p)".to_string() ),
-            ( StandardDistributionCriteraDefiner::PNu, NU_MIN, NU_MAX, NU_CNT, "N(Nu)".to_string() ),
-            ( StandardDistributionCriteraDefiner::PNu_selected, NU_MIN, NU_MAX, NU_CNT, "N(Nu, [p, ~p])".to_string(), arg=( {
-                let code = dict.get_particle_code("Proton").unwrap();
-                vec![code, -code]
-            }, ) )
+            ( StandardDistributionCriteraDefiner::PNu, NU_MIN, NU_MAX, NU_CNT, "N(Nu)".to_string() )
+            //( StandardDistributionCriteraDefiner::PNu_selected, NU_MIN, NU_MAX, NU_CNT, "N(Nu, [p, ~p])".to_string(), arg=( {
+            //    let code = dict.get_particle_code("Proton").unwrap();
+            //    vec![code, -code]
+            //}, ) )
             //( StandardDistributionCriteraDefiner::PdirTheta, DEG_MIN, DEG_MAX, DEG_CNT, "N(Theta_p)".to_string() ),
         )
         
@@ -371,6 +375,12 @@ fn main() {
         let headers = scalar_results.headers();
         let res = scalar_results.values();
         let mut f = File::create(sysprx.clone() + &args.o.clone()).unwrap();
+        f.write(
+            format!(
+                "# hega-rs ver.{} statistics: ",
+                VERSION
+            ).as_bytes()
+        ).unwrap();
         f.write((headers.join(";\t") + "\n").as_bytes()).unwrap();
         res.iter().for_each(|vals| {
             f.write((vals.iter().map(ToString::to_string).collect::<Vec<_>>().join(";\t") + "\n").as_bytes())
@@ -380,13 +390,13 @@ fn main() {
 
     if calc_target.contains(&CalcTarget::Distribution) {
         let suff = args.o.clone();
-
         distr_results.iter().for_each(
             |((pref, size, bins, vals))| {
                 let mut f = File::create(format!("{}{}-{}-{}", sysprx, pref, size, suff)).unwrap();
                 f.write(
                     format!(
-                        "# distribution : {}; total-items={}\n lbin;\t rbin;\t value\n",
+                        "# hega-rs ver.{} distribution : {}; total-items={}\n lbin;\t rbin;\t value\n",
+                        VERSION,
                         pref, size
                     ).as_bytes()
                 ).unwrap();
@@ -403,7 +413,6 @@ fn main() {
                 f.write(s.as_bytes()).unwrap();
             }
         );
-
         // f.write((headers.join(";\t") + "\n").as_bytes()).unwrap();
         // res.iter().for_each(|vals| {
         //     f.write((vals.iter().map(ToString::to_string).collect::<Vec<_>>().join(";\t") + "\n").as_bytes())
