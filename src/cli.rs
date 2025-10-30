@@ -65,7 +65,7 @@ pub struct Args {
     #[clap(short, long, num_args = 1.., value_delimiter = ',', default_value="statistics")]
     pub target: Vec<CalcTarget>,
 
-    #[clap(short, long)]
+    #[clap(short, long, default_value="default")]
     pub mode: CalcMode,
 
     /// List of files, delimeter ','. Use "quotes" if path contains whitespaces

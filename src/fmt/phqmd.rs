@@ -150,7 +150,7 @@ impl<'a, 'b> GenericDataContainer<'a, 'b> for PHQMDDataFile<'b> {
                                     bufheader = Some(PHQMDBlockHeader {
                                         nout: tokens.first().unwrap().parse().unwrap(),
                                     });
-                                    skip = true;
+                                    skip = true; // skip is for skipping second event-header line on each event (block)
                                 },
                                 (6..) => {
                                     // line event
