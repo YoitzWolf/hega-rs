@@ -20,6 +20,7 @@ pub enum StandardCriteria {
     BCharge,
     LCharge,
     FinCnt,
+    FinChargedCnt,
     PseudorapidityFilterCnt(f64, f64),
 }
 
@@ -29,29 +30,32 @@ where T: Particle<Decoder = S> + 'static, {
     fn get_criteria_value(&self, p: &T, dec: &S) -> f64 {//+ Clone + Send + 'a{
         match self {
             StandardCriteria::FinEnergy => {
-                p.energy(dec)
-            },
+                        p.energy(dec)
+                    },
             StandardCriteria::ECharge => {
-                p.e_charge(dec)
-            },
+                        p.e_charge(dec)
+                    },
             StandardCriteria::BCharge => {
-                p.b_charge(dec)
-            },
+                        p.b_charge(dec)
+                    },
             StandardCriteria::LCharge => {
-                p.l_charge(dec)
-            },
+                        p.l_charge(dec)
+                    },
             StandardCriteria::FinCnt => {
-                if p.is_final(dec) {1.} else {0.}
-            },
+                        if p.is_final(dec) {1.} else {0.}
+                    },
+            StandardCriteria::FinChargedCnt => {
+                        if p.is_final(dec) && p.e_charge(dec) != 0. {1.} else {0.}
+                    },
             StandardCriteria::PseudorapidityFilterCnt(mn, mx) => {
-                let pseudo = pseudorapidity(p.momentum(dec));
-                if p.e_charge(dec).abs() > 0.1 && (*mn <= pseudo && pseudo <= *mx) {
-                    //println!(">>>{}", pseudo);
-                    1.0
-                } else {
-                    0.0
-                }
-            },
+                        let pseudo = pseudorapidity(p.momentum(dec));
+                        if p.e_charge(dec).abs() > 0.1 && (*mn <= pseudo && pseudo <= *mx) {
+                            //println!(">>>{}", pseudo);
+                            1.0
+                        } else {
+                            0.0
+                        }
+                    },
         }
     }
 
@@ -76,7 +80,7 @@ pub trait Particle {
     fn mass_energy(&self, dec: &Self::Decoder) -> f64;
 
     fn energy(&self, dec: &Self::Decoder) -> f64 {
-        (self.mass_energy(dec).powi(2) + self.momentum_energy(dec).powi(2)).sqrt()
+        ( self.mass_energy(dec).powi(2) + self.momentum_energy(dec).powi(2) ).sqrt()
     }
 
     /// Returns Electric charge

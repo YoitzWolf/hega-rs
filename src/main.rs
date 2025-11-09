@@ -53,6 +53,7 @@ fn main() {
                 &StandardCriteria::BCharge,
                 &StandardCriteria::LCharge,
                 &StandardCriteria::FinCnt,
+                &StandardCriteria::FinChargedCnt,
 
                 &StandardCriteria::PseudorapidityFilterCnt(-0.5, 0.5),
                 &StandardCriteria::PseudorapidityFilterCnt(-1.0, 1.0),

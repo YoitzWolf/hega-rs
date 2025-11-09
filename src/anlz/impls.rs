@@ -87,12 +87,12 @@ impl Particle for PHQMDParticle {
         self.code
     }
 
-    fn energy(&self, dec: &EposDict) -> f64 {
+    /*fn energy(&self, dec: &EposDict) -> f64 {
         // SELF.E is worse!!!!
         (
             self.momentum_energy(dec).powi(2) + self.mass_energy(dec).powi(2)
         ).sqrt()
-    }
+    }*/
 
     fn momentum_energy(&self, _dct: &EposDict) -> f64 {
         //(self.E.powi(2) - self.mass_energy(_dct).powi(2)).sqrt()
