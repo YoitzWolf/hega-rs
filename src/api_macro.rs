@@ -18,7 +18,7 @@ use crate::fmt::{
 };
 use crate::anlz::HEPEvent;
 
-use crate::fmt::{oscar::OSC97UrQMDDataFile, phqmd::PHQMDDataFile};
+use crate::fmt::{oscar::OSC97UrQMDDataFile, phqmd::PHQMDDataFile, qgsm::QGSMDataFile};
 use crate::anlz::generic::*;
 
 
@@ -27,7 +27,7 @@ pub fn get_decoder(at: &cli::AcceptedTypes) -> fmt::decoder::DctCoding {
         cli::AcceptedTypes::EPOS => {
             fmt::decoder::DctCoding::EPOS
         },
-        cli::AcceptedTypes::PHQMD | cli::AcceptedTypes::UrQmdF19 => {
+        cli::AcceptedTypes::PHQMD | cli::AcceptedTypes::UrQmdF19 | cli::AcceptedTypes::QGSM => {
             fmt::decoder::DctCoding::PDG
         },
     }
@@ -187,6 +187,29 @@ macro_rules! run_criteria_list {
                     },
                     $dict,
                     PHQMDDataFile<'_>
+                )
+            },
+            AcceptedTypes::QGSM => {
+                run_criteria_list_inner!(
+                    { $args },
+                    { $calc_target },
+                    { $criteria_vec },
+                    {
+                        vec!(
+                            $(
+                                #[allow(unused_assignments)]
+                                {
+                                    standard_criteria!(
+                                        $Definer::$DefinerVeriant,
+                                        QGSMDataFile<'_>,
+                                        $DEG_MIN, $DEG_MAX, $DEG_CNT, $NAME $(, arg=$($ARG, )* )?
+                                    )
+                                }
+                            ),* ,
+                        )
+                    },
+                    $dict,
+                    QGSMDataFile<'_>
                 )
             },
         }

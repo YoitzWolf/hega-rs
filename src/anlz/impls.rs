@@ -1,5 +1,5 @@
 use super::generic::*;
-use crate::fmt::{decoder::EposDict, generic::*, oscar::*, phqmd::{PHQMDBlock, PHQMDParticle}};
+use crate::fmt::{decoder::EposDict, generic::*, oscar::*, phqmd::{PHQMDBlock, PHQMDParticle}, qgsm::{QGSMBlock, QGSMParticle}};
 
 impl Particle for OscarParticle {
 
@@ -163,6 +163,50 @@ impl HEPEvent for PHQMDBlock {
     type P = PHQMDParticle;
 
     fn particles(&self) -> impl Iterator<Item=&PHQMDParticle> + Clone {
+        self.event.iter()
+    }
+}
+
+
+impl Particle for QGSMParticle {
+    type Decoder = EposDict;
+
+    fn momentum_energy(&self, dec: &Self::Decoder) -> f64 {
+        (self.p.0.powi(2) + self.p.1.powi(2) + self.p.2.powi(2)).sqrt()
+    }
+
+    fn momentum(&self, dec: &Self::Decoder) -> &(f64, f64, f64) {
+        &self.p
+    }
+
+    fn mass_energy(&self, dec: &Self::Decoder) -> f64 {
+        self.mass
+    }
+
+    fn e_charge(&self, dec: &Self::Decoder) -> f64 {
+        self.charge as f64
+    }
+
+    fn b_charge(&self, dec: &Self::Decoder) -> f64 {
+        self.baryon_number as f64
+    }
+
+    fn l_charge(&self, dec: &Self::Decoder) -> f64 {
+        self.lepton_number as f64
+    }
+
+    fn is_final(&self, dec: &Self::Decoder) -> bool {
+        true
+    }
+
+    fn code(&self, dec: &Self::Decoder) -> i32 {
+        self.code
+    }
+}
+
+impl HEPEvent for QGSMBlock {
+    type P = QGSMParticle;
+    fn particles(&self) -> impl Iterator<Item=&QGSMParticle> + Clone {
         self.event.iter()
     }
 }

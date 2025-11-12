@@ -7,4 +7,4 @@ pub mod phqmd;
 
 pub mod decoder;
 
-pub mod root;
+pub mod qgsm;

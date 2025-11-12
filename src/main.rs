@@ -14,7 +14,7 @@ use clap::{Parser, *};
 use std::time::SystemTime;
 
 use anlz::{fncs::lab_momentum, DistributionCritetia, HEPEventAnalyzer, ScalarCriteria, StandardCriteria, StandardDistributionCriteria};
-use fmt::{decoder::EposDict, generic::GenericDataContainer, oscar::OSCEposBlock, phqmd::PHQMDBlock};
+use fmt::{decoder::EposDict, generic::GenericDataContainer, oscar::OSCEposBlock, phqmd::PHQMDBlock, qgsm::QGSMDataFile};
 use crate::{anlz::{HEPEvent, StandardDistributionCriteraDefiner}, fmt::{oscar::OSC97UrQMDDataFile, phqmd::PHQMDDataFile}};
 use crate::fmt::oscar::OSCEposDataFile;
 

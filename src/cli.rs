@@ -9,7 +9,7 @@ pub enum AcceptedTypes {
     EPOS,
     UrQmdF19,
     PHQMD,
-    //ROOT,
+    QGSM
 }
 
 #[derive(
