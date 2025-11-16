@@ -97,6 +97,17 @@ pub struct EposDict {
 }
 
 impl EposDict {
+
+    pub fn insert_code(&mut self, code: i32, particle: EposDictParticle, is_lepto: bool) {
+        if self.dct.contains_key(&code) {
+            println!("TRYING TO ADD EXSITING PARTICLE TO DICTIONARY !");
+        }
+        self.dct.insert(code, particle);
+        if is_lepto {
+            self.leptons.insert(code);
+        }
+    }
+
     pub fn upload<T: Sized + std::io::Read>(data: std::io::BufReader<T>, as_code: DctCoding, leptons: Option<HashSet<i32>>) -> Self {
 
         let mut mp = HashMap::new();
