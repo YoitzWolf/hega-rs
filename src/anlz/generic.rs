@@ -289,13 +289,6 @@ pub enum StandardDistributionCriteraDefiner<Event: HEPEvent> {
 
 #[macro_export]
 macro_rules! templated_std_crit_definer {
-    /*(
-        $g: ident::$i: ident,
-        $($tmpl_in:tt)*
-    ) => {
-        $g::<$($tmpl_in)*>::$i 
-    };*/
-
     (
         $g: ident::$i: ident $( ( $($arg:expr,)* ) )?,
         $($tmpl_in:tt)*
@@ -306,20 +299,6 @@ macro_rules! templated_std_crit_definer {
 
 #[macro_export]
 macro_rules! standard_criteria {
-    /*(
-        $Definer: ident::$DefinerVeriant: ident,
-        $DataFile:path,
-        $DEG_MIN:expr, $DEG_MAX:expr, $DEG_CNT:expr, $NAME:expr
-    ) => {
-        StandardDistributionCriteria::new(
-            templated_std_crit_definer!(
-                $Definer::$DefinerVeriant,
-                <$DataFile as crate::fmt::generic::GenericDataContainer>::Block
-            ),
-            $DEG_MIN, $DEG_MAX, $DEG_CNT, $NAME
-        )
-    };*/
-
     (
         $Definer: ident::$DefinerVeriant: ident,
         $DataFile:path,

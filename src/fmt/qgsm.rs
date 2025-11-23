@@ -1,5 +1,6 @@
 use std::error::Error;
 use std::io::prelude::*;
+use with_position::{WithPosition, Position};
 
 use super::decoder::EposDict;
 /// OSCAR1999 format reader and interpreter
@@ -132,7 +133,7 @@ impl<'a, 'b> GenericDataContainer<'a, 'b> for QGSMDataFile<'b> {
     }
 
     fn upload<T: Sized + std::io::Read>(data: std::io::BufReader<T>, decoder: &'b Self::Decoder) -> Result<Self, std::io::Error> {
-        match data.lines().enumerate().try_fold(
+        match data.lines().with_position().enumerate().try_fold(
             (
                 None,
                 None,
@@ -141,7 +142,7 @@ impl<'a, 'b> GenericDataContainer<'a, 'b> for QGSMDataFile<'b> {
             ),
             |
                 (mut header, mut bufheader, mut buf, mut events)
-                , (idx, _line)
+                , (idx, (position, _line))
             | -> Result<_, Box<dyn Error> > {
                 match _line {
                     Ok(line) => {
@@ -190,6 +191,16 @@ impl<'a, 'b> GenericDataContainer<'a, 'b> for QGSMDataFile<'b> {
                                     buf.push({
                                         tokens.join(" ")
                                     });
+                                    if let Position::Last = position {
+                                        if let Some(hd) = bufheader {
+                                            let block = Self::Block::try_from(
+                                                (hd, &buf)
+                                            )?;
+                                            events.push(block);
+                                            buf.clear();
+                                        }
+                                        bufheader = None;
+                                    }
                                 },
                                 _ => {
                                     println!("To little symbols in line or empty, skipped..");

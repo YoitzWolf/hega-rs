@@ -1,5 +1,6 @@
 use std::error::Error;
 use std::io::prelude::*;
+use with_position::{WithPosition, Position};
 
 use super::decoder::EposDict;
 /// PHQMD format reader and interpreter
@@ -114,9 +115,7 @@ impl<'a, 'b> GenericDataContainer<'a, 'b> for PHQMDDataFile<'b> {
     }
 
     fn upload<T: Sized + std::io::Read>(data: std::io::BufReader<T>, decoder: &'b Self::Decoder) -> Result<Self, std::io::Error> {
-
-        let mut dit = data.lines().enumerate();
-
+        let mut dit = data.lines().with_position().enumerate();
         let header = Some (
             PHQMDHeader {}
         );
@@ -129,7 +128,7 @@ impl<'a, 'b> GenericDataContainer<'a, 'b> for PHQMDDataFile<'b> {
             ),
             |
                 ( mut skip, mut bufheader, mut buf, mut events)
-                , (i, _line)| -> Result<_, Box<dyn Error> > {
+                , (i, (position, _line))| -> Result<_, Box<dyn Error> > {
                 match _line {
                     Ok(line) => {
                         if (skip) { Ok((false, bufheader, buf, events)) } else
@@ -155,6 +154,16 @@ impl<'a, 'b> GenericDataContainer<'a, 'b> for PHQMDDataFile<'b> {
                                 (6..) => {
                                     // line event
                                     buf.push(line);
+                                    if let Position::Last = position {
+                                        if let Some(hd) = bufheader {
+                                            let block = PHQMDBlock::try_from(
+                                                (hd, &buf)
+                                            )?;
+                                            events.push(block);
+                                            buf.clear();
+                                        }
+                                        bufheader = None;
+                                    }
                                 },
                                 _ => {
                                     // warn!("Bad line!");

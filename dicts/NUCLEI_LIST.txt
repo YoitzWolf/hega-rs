@@ -1,0 +1,9 @@
+! Nuclei codes list
+! -----------------
+! PDG code
+! Name
+! Mass 
+!
+1000010020  Deuteron 1.87656
+1000010030  Triton   2.81670
+1000010040  Alpha    3.72700

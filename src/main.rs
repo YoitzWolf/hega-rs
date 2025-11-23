@@ -110,8 +110,6 @@ fn main() {
     };
 
     let end = start.elapsed().unwrap();
-
-
     let sysprx = {
         if args.lab {
             "Lab"
@@ -119,7 +117,6 @@ fn main() {
             ""
         }
     }.to_string();
-
     // headers = "E[GeV];\tB;\tL\n".as_bytes()
     println!("TOTAL DONE: {} s", end.as_secs_f64());
     if calc_target.contains(&CalcTarget::Statistics) {
@@ -140,7 +137,6 @@ fn main() {
                 .unwrap();
         });
     }
-
     if calc_target.contains(&CalcTarget::Distribution) {
         let suff = args.o.clone();
         distr_results.iter().for_each(

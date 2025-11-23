@@ -137,11 +137,12 @@ checksum = "2304e00983f87ffb38b55b444b5e3b60a884b5d30c0fca7d82fe33449bbe55ea"
 
 [[package]]
 name = "hega-rs"
-version = "0.2.6"
+version = "0.2.7"
 dependencies = [
  "clap",
  "rayon",
  "serde",
+ "with_position",
 ]
 
 [[package]]
@@ -315,3 +316,9 @@ name = "windows_x86_64_msvc"
 version = "0.52.6"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "589f6da84c646204747d1270a2a5661ea66ed1cced2631d546fdfb155959f9ec"
+
+[[package]]
+name = "with_position"
+version = "0.1.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "9d66d4228528ee5c0c1c236e215850f340e6fcc7924afef331e5803f231e0b36"

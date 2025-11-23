@@ -1,5 +1,6 @@
 use std::error::Error;
 use std::io::prelude::*;
+use with_position::{WithPosition, Position};
 
 use super::decoder::EposDict;
 /// OSCAR1999 format reader and interpreter
@@ -131,7 +132,7 @@ impl<'a, 'b> GenericDataContainer<'a, 'b> for OSCEposDataFile<'b> {
     }
 
     fn upload<T: Sized + std::io::Read>(data: std::io::BufReader<T>, decoder: &'b Self::Decoder) -> Result<Self, std::io::Error> {
-        match data.lines().try_fold(
+        match data.lines().with_position().try_fold(
             (
                 None,
                 None,
@@ -140,7 +141,7 @@ impl<'a, 'b> GenericDataContainer<'a, 'b> for OSCEposDataFile<'b> {
             ),
             |
                 (mut header, mut bufheader, mut buf, mut events)
-                , _line| -> Result<_, Box<dyn Error> > {
+                , (position, _line)| -> Result<_, Box<dyn Error> > {
                 match _line {
                     Ok(line) => {
                         if line.starts_with("#") {
@@ -181,6 +182,16 @@ impl<'a, 'b> GenericDataContainer<'a, 'b> for OSCEposDataFile<'b> {
                                 (6..) => {
                                     // line event
                                     buf.push(line);
+                                    if let Position::Last = position {
+                                        if let Some(hd) = bufheader {
+                                            let block = OSCEposBlock::try_from(
+                                                (hd, &buf)
+                                            )?;
+                                            events.push(block);
+                                            buf.clear();
+                                            bufheader = None;
+                                        }
+                                    }
                                 },
                                 _ => {
                                     // warn!("Bad line!");
@@ -196,7 +207,7 @@ impl<'a, 'b> GenericDataContainer<'a, 'b> for OSCEposDataFile<'b> {
                 }
             }
         ) {
-            Ok((a, b ,c, events)) => {
+            Ok((a, b, c, events)) => {
                 Ok(
                     Self {
                         header: a.unwrap(),
@@ -257,7 +268,7 @@ impl<'a, 'b> GenericDataContainer<'a, 'b> for OSC97UrQMDDataFile<'b> {
     }
 
     fn upload<T: Sized + std::io::Read>(data: std::io::BufReader<T>, decoder: &'b Self::Decoder) -> Result<Self, std::io::Error> {
-        match data.lines().enumerate().try_fold(
+        match data.lines().with_position().enumerate().try_fold(
             (
                 None,
                 None,
@@ -266,7 +277,7 @@ impl<'a, 'b> GenericDataContainer<'a, 'b> for OSC97UrQMDDataFile<'b> {
             ),
             |
                 (mut header, mut bufheader, mut buf, mut events)
-                , (idx, _line)| -> Result<_, Box<dyn Error> > {
+                , (idx, (position, _line))| -> Result<_, Box<dyn Error> > {
                 match _line {
                     Ok(line) => {
                         if idx <= 2 && line.contains("UrQMD") {
@@ -310,6 +321,16 @@ impl<'a, 'b> GenericDataContainer<'a, 'b> for OSC97UrQMDDataFile<'b> {
                                         tokens.insert(2, &"0"); // add STATUS code, bcs .f19 OSCAR1997A UrQMD output files dont do this
                                         tokens.join(" ")
                                     });
+                                    if let Position::Last = position {
+                                        if let Some(hd) = bufheader {
+                                            let block = Self::Block::try_from(
+                                                (hd, &buf)
+                                            )?;
+                                            events.push(block);
+                                            buf.clear();
+                                        }
+                                        bufheader = None
+                                    }
                                 },
                                 _ => {
                                     // warn!("Bad line!");

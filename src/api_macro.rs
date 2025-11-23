@@ -45,7 +45,9 @@ pub fn generate_dictionary(x: &AcceptedTypes) -> EposDict {
         decoder,
         Some(dict_lepto.codes().cloned().collect())
     );
-
+    dict.upload_nuclei(
+        BufReader::new(File::open("./dicts/NUCLEI_LIST.txt").unwrap())
+    );
     match x {
         AcceptedTypes::PHQMD => {
             dict.insert_code(100121, {
@@ -72,6 +74,7 @@ macro_rules! run_criteria_list_inner {
                     println!(">> FILE READING [{}]", x);
                     let f = File::open(&x).unwrap();
                     let x = <$DataFile>::upload(BufReader::new(f), $dict).unwrap();
+                    println!("{} events loaded", x.len());
                     if let Some(mut fo) = fo {
                         fo.push_back( x );
                         Some(fo)            

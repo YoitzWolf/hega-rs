@@ -41,12 +41,13 @@ pub struct EposDictParticle{
     pub width       : Option<f64>,
     pub multiplicity: Option<i32>,
     pub degeneracy  : Option<i32>,
-    pub status      : String
+    pub status      : String,
+    pub lepton_charge   : f64
 }
 
 impl EposDictParticle {
-    pub fn new(id_EPOS: Option<i32>, id_PDG: Option<i32>, id_QGSJET: Option<i32>, id_GHEISHA: Option<i32>, id_SIBYLL: Option<i32>, name: String, ifl1: Option<i32>, ifl2: Option<i32>, ifl3: Option<i32>, counter: Option<i32>, mass: Option<f64>, charge: Option<f64>, width: Option<f64>, multiplicity: Option<i32>, degeneracy: Option<i32>, status: String) -> Self {
-        Self { id_EPOS, id_PDG, id_QGSJET, id_GHEISHA, id_SIBYLL, name, ifl1, ifl2, ifl3, counter, mass, charge, width, multiplicity, degeneracy, status }
+    pub fn new(id_EPOS: Option<i32>, id_PDG: Option<i32>, id_QGSJET: Option<i32>, id_GHEISHA: Option<i32>, id_SIBYLL: Option<i32>, name: String, ifl1: Option<i32>, ifl2: Option<i32>, ifl3: Option<i32>, counter: Option<i32>, mass: Option<f64>, charge: Option<f64>, width: Option<f64>, multiplicity: Option<i32>, degeneracy: Option<i32>, status: String, lepton_charge: f64) -> Self {
+        Self { id_EPOS, id_PDG, id_QGSJET, id_GHEISHA, id_SIBYLL, name, ifl1, ifl2, ifl3, counter, mass, charge, width, multiplicity, degeneracy, status, lepton_charge}
     }
 
     fn cleared<'a, T: FromStr>(c: &'a str) -> Option<T>
@@ -77,9 +78,11 @@ impl EposDictParticle {
             width: Self::cleared(tokens.next().unwrap()),
             multiplicity: Self::cleared(tokens.next().unwrap()),
             degeneracy: Self::cleared(tokens.next().unwrap()),
-            status: tokens.next().unwrap().to_string()
+            status: tokens.next().unwrap().to_string(),
+            lepton_charge: 0.0
         }
     }
+
 }
 
 
@@ -108,6 +111,47 @@ impl EposDict {
         }
     }
 
+    pub fn upload_nuclei<T: Sized + std::io::Read>(&mut self, data: std::io::BufReader<T>) {
+        data.lines().for_each(
+            |s| {
+                if let Ok(s) = s {
+                    let s = s.trim();
+                    if s.starts_with("!") { /* skip */}
+                    else {
+                        let s: Vec<String> = s.trim().split_ascii_whitespace().map(|x| {x.to_string()}).collect();
+                        let code: i32 = s[0].parse().unwrap();
+                        let name = s[1].clone();
+                        let mass = s[2].parse().unwrap();
+                        let charge = (code.signum() * (code % 10000000 / 10000) ) as f64;
+                        let v = EposDictParticle {
+                            id_EPOS: Some(code),
+                            id_PDG:  Some(code),
+                            id_QGSJET: None,
+                            id_GHEISHA: None,
+                            id_SIBYLL: None,
+                            name: name,
+                            ifl1: None,
+                            ifl2: None,
+                            ifl3: None,
+                            counter: None,
+                            mass: Some(mass),
+                            charge: Some(charge),
+                            width: None,
+                            multiplicity: None,
+                            degeneracy: None,
+                            status: "Nuclei".to_string(),
+                            lepton_charge: 0.
+                        };
+                        self.insert_code(code, v, false);
+                    }
+                } else {
+                    panic!("ERROR READING NUCLEI LIST")
+                }
+            }
+        );
+
+    }
+
     pub fn upload<T: Sized + std::io::Read>(data: std::io::BufReader<T>, as_code: DctCoding, leptons: Option<HashSet<i32>>) -> Self {
 
         let mut mp = HashMap::new();
@@ -118,11 +162,16 @@ impl EposDict {
                     let s = s.trim();
                     if s.starts_with("!") || s.len() < 10 { /* skip */}
                     else {
-                        let v = EposDictParticle::from_str(s.to_string());
+                        let mut v = EposDictParticle::from_str(s.to_string());
                         let code = match as_code {
                             DctCoding::EPOS => v.id_EPOS.unwrap_or(99),
                             DctCoding::PDG => v.id_PDG.unwrap_or(99),
                         };
+                        if let Some(lp) = &leptons {
+                            if lp.contains(&code) {
+                                v.lepton_charge = if (code > 0) {1.0} else {-1.0};
+                            }
+                        }
                         mp.insert(code, v);
                     }
                 } else {

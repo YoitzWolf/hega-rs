@@ -1,13 +1,13 @@
 [package]
 name = "hega-rs"
-version = "0.2.6"
+version = "0.2.7"
 edition = "2024"
 
 [dependencies]
 clap = { version = "4.5.32", features = ["derive"] }
 rayon = "1.10.0"
 serde = {version="*", features = ["derive"]}
-
+with_position = "*"
 
 [buid]
 rustflags = [
@@ -21,6 +21,7 @@ provides = [
     { crate_path = "./dicts/EPOS.particles.txt", output_path="EPOS.particles" },
     { crate_path = "./dicts/EPOS_LEPTONS.particles.txt", output_path="EPOS.LEPTONS.particles" }, 
     { crate_path = "./dicts/EPOS_BARYONS.particles.txt", output_path="EPOS.BARYONS.particles" }, 
+    { crate_path = "./dicts/NUCLEI_LIST.txt", output_path="NUCLEI_LIST.txt" }, 
 ]
 
 ## requires = [
