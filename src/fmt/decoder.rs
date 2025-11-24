@@ -106,6 +106,7 @@ impl EposDict {
             println!("TRYING TO ADD EXSITING PARTICLE TO DICTIONARY !");
         }
         self.dct.insert(code, particle);
+        println!(" Particle registered in dict: [{}] {:?}", code, self.dct.get(&code).unwrap());
         if is_lepto {
             self.leptons.insert(code);
         }
@@ -142,6 +143,7 @@ impl EposDict {
                             status: "Nuclei".to_string(),
                             lepton_charge: 0.
                         };
+                        println!("> Added Nuclei: {:?}", v);
                         self.insert_code(code, v, false);
                     }
                 } else {

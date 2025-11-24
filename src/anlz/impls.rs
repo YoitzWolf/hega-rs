@@ -21,6 +21,8 @@ impl Particle for EposDictParticle {
     }
 
     fn b_charge(&self, dec: &Self::Decoder) -> f64 {
+        //                                             1000010020
+        // println!(">{} : {}\n", self.id_PDG.unwrap(), self.id_PDG.unwrap().abs() - 1000000000);
         if (self.id_PDG.unwrap().abs() > 1000000000) {
             // nuclei
             let code = self.id_PDG.unwrap();
@@ -28,16 +30,16 @@ impl Particle for EposDictParticle {
             (baryon as f64) * (code.signum() as f64)
         } else {
             if self.id_PDG.unwrap() > 0 {
-                [   self.ifl1.unwrap_or_else(|| { println!("[WARNING::EPOS]: Using undefined values! {:?}", self); 0 }),
-                    self.ifl2.unwrap_or_else(|| { println!("[WARNING::EPOS]: Using undefined values! {:?}", self); 0 }),
-                    self.ifl3.unwrap_or_else(|| { println!("[WARNING::EPOS]: Using undefined values! {:?}", self); 0 })
+                [   self.ifl1.unwrap_or_else(|| { println!("[WARNING::EPOS DICT]: Using undefined values! {:?}", self); 0 }),
+                    self.ifl2.unwrap_or_else(|| { println!("[WARNING::EPOS DICT]: Using undefined values! {:?}", self); 0 }),
+                    self.ifl3.unwrap_or_else(|| { println!("[WARNING::EPOS DICT]: Using undefined values! {:?}", self); 0 })
                 ].iter().map(
                         |&x| { if (x > 0) { 1. } else if (x < 0) {-1.} else {0.} }
                     ).sum::<f64>() / 3.0
             } else {
-                -[  self.ifl1.unwrap_or_else(|| { println!("[WARNING::EPOS]: Using undefined values (anti)! {:?}", self); 0 }),
-                    self.ifl2.unwrap_or_else(|| { println!("[WARNING::EPOS]: Using undefined values (anti)! {:?}", self); 0 }),
-                    self.ifl3.unwrap_or_else(|| { println!("[WARNING::EPOS]: Using undefined values (anti)! {:?}", self); 0 })
+                -[  self.ifl1.unwrap_or_else(|| { println!("[WARNING::EPOS DICT]: Using undefined values (anti)! {:?}", self); 0 }),
+                    self.ifl2.unwrap_or_else(|| { println!("[WARNING::EPOS DICT]: Using undefined values (anti)! {:?}", self); 0 }),
+                    self.ifl3.unwrap_or_else(|| { println!("[WARNING::EPOS DICT]: Using undefined values (anti)! {:?}", self); 0 })
                 ].iter().map(
                         |&x| { if (x > 0) { 1. } else if (x < 0) {-1.} else {0.} }
                     ).sum::<f64>() / 3.0
@@ -179,21 +181,9 @@ impl Particle for PHQMDParticle {
 
     fn b_charge(&self, dct: &EposDict) -> f64 {
         if let Some(pd) = dct.get(&self.code) {
-            /*[   pd.ifl1.unwrap_or_else(|| { println!("[WARNING::EPOS]: Using undefined values! {:?}", pd); 0 }),
-                pd.ifl2.unwrap_or_else(|| { println!("[WARNING::EPOS]: Using undefined values! {:?}", pd); 0 }),
-                pd.ifl3.unwrap_or_else(|| { println!("[WARNING::EPOS]: Using undefined values! {:?}", pd); 0 })
-            ].iter().map(
-                    |&x| { if (x > 0) { 1. } else if (x < 0) {-1.} else {0.} }
-                ).sum::<f64>() / 3.0*/
                 pd.b_charge(&())
         } else {
            if let Some(pd) = dct.get(&-self.code) {
-                /*-[   pd.ifl1.unwrap_or_else(|| { println!("[WARNING::EPOS]: Using undefined values (anti)! {:?}", pd); 0 }),
-                     pd.ifl2.unwrap_or_else(|| { println!("[WARNING::EPOS]: Using undefined values (anti)! {:?}", pd); 0 }),
-                     pd.ifl3.unwrap_or_else(|| { println!("[WARNING::EPOS]: Using undefined values (anti)! {:?}", pd); 0 })
-                ].iter().map(
-                        |&x| { if (x > 0) { 1. } else if (x < 0) {-1.} else {0.} }
-                    ).sum::<f64>() / 3.0*/
                 -pd.b_charge(&())
             } else {
                 panic!("Undefined Particle!, {:?}", self)

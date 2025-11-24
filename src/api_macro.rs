@@ -52,7 +52,7 @@ pub fn generate_dictionary(x: &AcceptedTypes) -> EposDict {
         AcceptedTypes::PHQMD => {
             dict.insert_code(100121, {
                 let mut p = dict.get(&1000010020).unwrap().clone();
-                p.id_PDG = Some(100121);
+                // p.id_PDG = Some(100121);
                 p
             }, false);
         },
