@@ -112,6 +112,34 @@ impl EposDict {
         }
     }
 
+    pub fn get_nuclei_from_code(code: i32, mass: f64, name: Option<String>) -> Option<EposDictParticle> {
+        if code.abs() / 1000000000 > 0 {
+            let name = name.unwrap_or(format!("New Nuclei {}", code));
+            let charge = (code.signum() * (code % 10000000 / 10000) ) as f64;
+            Some(EposDictParticle {
+                id_EPOS: Some(code),
+                id_PDG:  Some(code),
+                id_QGSJET: None,
+                id_GHEISHA: None,
+                id_SIBYLL: None,
+                name: name,
+                ifl1: None,
+                ifl2: None,
+                ifl3: None,
+                counter: None,
+                mass: Some(mass),
+                charge: Some(charge),
+                width: None,
+                multiplicity: None,
+                degeneracy: None,
+                status: "Nuclei".to_string(),
+                lepton_charge: 0.
+            })
+        } else {
+            None
+        }
+    }
+
     pub fn upload_nuclei<T: Sized + std::io::Read>(&mut self, data: std::io::BufReader<T>) {
         data.lines().for_each(
             |s| {
@@ -123,8 +151,8 @@ impl EposDict {
                         let code: i32 = s[0].parse().unwrap();
                         let name = s[1].clone();
                         let mass = s[2].parse().unwrap();
-                        let charge = (code.signum() * (code % 10000000 / 10000) ) as f64;
-                        let v = EposDictParticle {
+                        // let charge = (code.signum() * (code % 10000000 / 10000) ) as f64;
+                        /*let v = EposDictParticle {
                             id_EPOS: Some(code),
                             id_PDG:  Some(code),
                             id_QGSJET: None,
@@ -142,7 +170,8 @@ impl EposDict {
                             degeneracy: None,
                             status: "Nuclei".to_string(),
                             lepton_charge: 0.
-                        };
+                        };*/
+                        let v = Self::get_nuclei_from_code(code, mass, Some(name)).unwrap();
                         println!("> Added Nuclei: {:?}", v);
                         self.insert_code(code, v, false);
                     }

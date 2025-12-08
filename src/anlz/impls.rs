@@ -1,5 +1,5 @@
 use super::generic::*;
-use crate::fmt::{decoder::{EposDict, EposDictParticle}, generic::*, oscar::*, phqmd::{PHQMDBlock, PHQMDParticle}, qgsm::{QGSMBlock, QGSMParticle}};
+use crate::fmt::{decoder::{EposDict, EposDictParticle}, generic::*, hepmc::{HepMCBlock, HepMCParticle}, oscar::*, phqmd::{PHQMDBlock, PHQMDParticle}, qgsm::{QGSMBlock, QGSMParticle}};
 
 impl Particle for EposDictParticle {
     type Decoder = ();
@@ -88,7 +88,10 @@ impl Particle for OscarParticle {
             if let Some(pd) = dct.get(&-self.code) {
                 -pd.charge.unwrap_or_else(|| { println!("[WARNING::EPOS]: Using undefined values (anti)! {:?}", pd); 0. })
             } else {
-                panic!("Undefined Particle! {:?}", self)
+                match EposDict::get_nuclei_from_code(self.code, self.mass, None) {
+                    Some(pt) => pt.e_charge(&()),
+                    None =>  panic!("Unable to get Electricity charge : Undefined Particle! {:?}", self),
+                }
             }
         }
     }
@@ -112,7 +115,10 @@ impl Particle for OscarParticle {
                     ).sum::<f64>() / 3.0*/
                 -pd.b_charge(&())
             } else {
-                panic!("Undefined Particle!, {:?}", self)
+                match EposDict::get_nuclei_from_code(self.code, self.mass, None) {
+                    Some(pt) => pt.b_charge(&()),
+                    None =>  panic!("Unable to get Baryon charge : Undefined Particle! {:?}", self),
+                }
             }
         }
     }
@@ -171,7 +177,7 @@ impl Particle for PHQMDParticle {
                 || { println!("[WARNING]: Using undefined values (anti)! {:?}", x); 0. }
             )
         } else {
-            panic!("Undefined Particle!, {:?}", self)
+            panic!("Unable to get mass : Undefined Particle!, {:?}", self)
         }
     }
 
@@ -186,7 +192,10 @@ impl Particle for PHQMDParticle {
            if let Some(pd) = dct.get(&-self.code) {
                 -pd.b_charge(&())
             } else {
-                panic!("Undefined Particle!, {:?}", self)
+                match EposDict::get_nuclei_from_code(self.code, -1.0, None) {
+                    Some(pt) => pt.b_charge(&()),
+                    None =>  panic!("Unable to get Baryon charge : Undefined Particle! {:?}", self),
+                }
             }
         }
     }
@@ -258,6 +267,77 @@ impl Particle for QGSMParticle {
 impl HEPEvent for QGSMBlock {
     type P = QGSMParticle;
     fn particles(&self) -> impl Iterator<Item=&QGSMParticle> + Clone {
+        self.event.iter()
+    }
+}
+
+impl Particle for HepMCParticle {
+    type Decoder = EposDict;
+
+    fn momentum_energy(&self, dec: &Self::Decoder) -> f64 {
+        (self.p.0.powi(2) + self.p.1.powi(2) + self.p.2.powi(2)).sqrt()
+    }
+
+    fn momentum(&self, dec: &Self::Decoder) -> &(f64, f64, f64) {
+        &self.p
+    }
+
+    fn mass_energy(&self, dec: &Self::Decoder) -> f64 {
+        self.mass
+    }
+
+    fn e_charge(&self, dct: &EposDict) -> f64 {
+        if let Some(pd) = dct.get(&self.code) {
+                pd.e_charge(&())
+        } else {
+           if let Some(pd) = dct.get(&-self.code) {
+                -pd.e_charge(&())
+            } else {
+                match EposDict::get_nuclei_from_code(self.code, self.mass, None) {
+                    Some(pt) => pt.e_charge(&()),
+                    None =>  panic!("Unable to get Electricity charge : Undefined Particle! {:?}", self),
+                }
+            }
+        }
+    }
+
+    fn b_charge(&self, dct: &EposDict) -> f64 {
+        if let Some(pd) = dct.get(&self.code) {
+                pd.b_charge(&())
+        } else {
+           if let Some(pd) = dct.get(&-self.code) {
+                -pd.b_charge(&())
+            } else {
+                match EposDict::get_nuclei_from_code(self.code, self.mass, None) {
+                    Some(pt) => pt.b_charge(&()),
+                    None =>  panic!("Unable to get Baryon charge : Undefined Particle! {:?}", self),
+                }
+            }
+        }
+    }
+
+    fn l_charge(&self, dct: &EposDict) -> f64 {
+        if dct.is_lepton(&self.code)  {
+            1.0
+        } else if dct.is_lepton(&-self.code) {
+            -1.0
+        } else {
+            0.0
+        }
+    }
+
+    fn is_final(&self, dec: &Self::Decoder) -> bool {
+        self.status.eq(&1)
+    }
+
+    fn code(&self, dec: &Self::Decoder) -> i32 {
+        self.code
+    }
+}
+
+impl HEPEvent for HepMCBlock {
+    type P = HepMCParticle;
+    fn particles(&self) -> impl Iterator<Item=&Self::P> + Clone {
         self.event.iter()
     }
 }
