@@ -21,6 +21,7 @@ pub enum StandardCriteria {
     LCharge,
     FinCnt,
     FinChargedCnt,
+    ParticleIdCounter(i32),
     PseudorapidityFilterCnt(f64, f64),
 }
 
@@ -56,6 +57,13 @@ where T: Particle<Decoder = S> + 'static, {
                             0.0
                         }
                     },
+            StandardCriteria::ParticleIdCounter(cur_id) => {
+                if p.code(&dec) == *cur_id {
+                    1.0
+                } else {
+                    0.0
+                }
+            },
         }
     }
 
@@ -122,6 +130,48 @@ impl<'a, Event: HEPEvent> HEPEventAnalyzer<'a, Event>
 where &'a[Event]: rayon::iter::IntoParallelIterator<Item = &'a Event>
 {
     pub fn new(events: &'a [Event]) -> Self { Self{events} }
+
+    pub fn calculate_particle_list(
+        &self,
+        filter: impl (Fn(&Event::P, &<Event::P as Particle>::Decoder) -> bool) + Sync,
+        criteria: Vec<ParticleListCompiler>,
+        dec: &<Event::P as Particle>::Decoder
+    ) -> Vec<ParticleListCompiler>
+    where
+        <Event as HEPEvent>::P: 'static ,
+        <Event::P as Particle>::Decoder: Sync
+    {
+        let criteria_vec = Arc::new(criteria.clone());
+        let dec = Arc::new(dec);
+        let results = self.events.par_iter().map(
+            |event| {
+                let mut criterias: Vec<_> = criteria_vec.iter().map(|x| x.clean_clone()).collect();
+                event.particles().filter(|x| {
+                    filter(x, dec.as_ref())
+                }).for_each(
+                    |p| {
+                        criterias.iter_mut().for_each(
+                            |crit| {
+                                if crit.id_filter.contains(&p.code(&dec)) {
+                                    crit.data.push(
+                                        ParticleListOutput::from_hep_particle::<Event>(&p, &dec)
+                                    )
+                                }
+                            }
+                        );
+                    }
+                );
+                criterias
+            }
+        ).collect::<Vec<_>>().iter_mut().fold(
+            criteria,
+            |mut f, mut x| {
+                f.append(&mut x);
+                f
+            }
+        );
+        results
+    }
 
     /// `criteria` - scalar criteria to calculate, calculated **after** filter
     pub fn calculate_criteria // <T: Sync + ScalarCriteria<'a, <Event::P as Particle>::Decoder, Event::P>>
@@ -272,7 +322,6 @@ pub struct ParticleCodeSelector {
     codes: HashSet<i64>
 }
 
-
 pub enum StandardDistributionCriteraDefiner<Event: HEPEvent> {
 
     /// distribution of particle momentum angle direction
@@ -300,13 +349,13 @@ macro_rules! templated_std_crit_definer {
 #[macro_export]
 macro_rules! standard_criteria {
     (
-        $Definer: ident::$DefinerVeriant: ident,
+        $Definer: ident::$DefinerVariant: ident,
         $DataFile:path,
         $DEG_MIN:expr, $DEG_MAX:expr, $DEG_CNT:expr, $NAME:expr $(, arg=$($ARG:expr,)*)?
     ) => {
         StandardDistributionCriteria::new(
             templated_std_crit_definer!(
-                $Definer::$DefinerVeriant $( ( $($ARG, )* ))?,
+                $Definer::$DefinerVariant $( ( $($ARG, )* ))?,
                 <$DataFile as crate::fmt::generic::GenericDataContainer>::Block
             ),
             $DEG_MIN, $DEG_MAX, $DEG_CNT, $NAME
@@ -366,7 +415,7 @@ pub fn cuttest() {
     println!("{:?}", s.get_bins());
 }
 
-impl<'a, S, Event: HEPEvent> DistributionCritetia<'a, S, Event::P> for StandardDistributionCriteria<Event> 
+impl<'a, S, Event: HEPEvent> DistributionCritetia<'a, S, Event::P> for StandardDistributionCriteria<Event>
     where Event::P: Particle<Decoder = S> + 'static,
 {
     fn get_bins(&self) -> &[(f64, f64)] {
@@ -413,7 +462,6 @@ impl<'a, S, Event: HEPEvent> DistributionCritetia<'a, S, Event::P> for StandardD
                 } else {
                     self.max + self.dx + self.dx
                 }
-                
             }
             StandardDistributionCriteraDefiner::Custom(cst) => {
                 cst.as_ref()(p, dec)
@@ -426,7 +474,6 @@ impl<'a, S, Event: HEPEvent> DistributionCritetia<'a, S, Event::P> for StandardD
                     // println!("[WARNING] {:?} out of context", p);
                     self.max + self.dx + self.dx
                 }
-                
             }
         };
         // println!(">>>{} :: {}", value, ((value-self.min) / self.dx).ceil() as i64);
@@ -435,5 +482,47 @@ impl<'a, S, Event: HEPEvent> DistributionCritetia<'a, S, Event::P> for StandardD
 
     fn name(&self) -> String {
         self.name.clone()
+    }
+}
+
+#[derive(Debug, Clone)]
+pub struct ParticleListOutput {
+    pub id: i32,
+    pub mass: f64,
+    pub p: f64,
+    pub beta: f64
+}
+
+impl ParticleListOutput {
+    pub fn from_hep_particle<Event: HEPEvent>(value: &Event::P, d: &<Event::P as Particle>::Decoder) -> Self
+    {
+        Self {
+            id: value.code(d),
+            mass: value.mass_energy(d),
+            p: value.momentum_energy(d),
+            beta: beta(value, d),
+        }
+    }
+}
+
+#[derive(Debug, Clone)]
+pub struct ParticleListCompiler {
+    pub id_filter: HashSet<i32>,
+    pub data: Vec<ParticleListOutput>,
+}
+
+impl ParticleListCompiler {
+
+    pub fn new(id_filter: HashSet<i32>) -> Self {
+        Self {
+            id_filter,
+            data: Vec::new(),
+        }
+    }
+    pub fn clean_clone(&self) -> Self {
+        Self {
+            id_filter: self.id_filter.clone(),
+            data: vec![]
+        }
     }
 }

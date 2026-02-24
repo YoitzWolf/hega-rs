@@ -20,6 +20,7 @@ pub enum CalcTarget {
     #[default]
     Statistics,
     Distribution,
+    ParticleList
 }
 
 #[derive(
@@ -59,8 +60,8 @@ pub struct Args {
     pub ftype: AcceptedTypes,
 
     /// Take if need to check in Lab system [change Pz momentum]
-    #[clap(long)]
-    pub lab: bool,
+    // #[clap(long)]
+    // pub lab: bool,
 
     /// List of calculation targets
     #[clap(short, long, num_args = 1.., value_delimiter = ',', default_value="statistics")]

@@ -16,6 +16,7 @@ use std::time::SystemTime;
 use anlz::{fncs::lab_momentum, DistributionCritetia, HEPEventAnalyzer, ScalarCriteria, StandardCriteria, StandardDistributionCriteria};
 use fmt::{decoder::EposDict, generic::GenericDataContainer, oscar::OSCEposBlock, phqmd::PHQMDBlock, qgsm::QGSMDataFile, hepmc::HepMCDataFile, hepmc::HepMCBlock};
 use crate::{anlz::{HEPEvent, StandardDistributionCriteraDefiner}, fmt::{oscar::OSC97UrQMDDataFile, phqmd::PHQMDDataFile}};
+use crate::anlz::ParticleListCompiler;
 use crate::fmt::oscar::OSCEposDataFile;
 
 const VERSION: &str = env!("CARGO_PKG_VERSION");
@@ -42,7 +43,7 @@ fn main() {
     
     let start = SystemTime::now();
     
-    let (scalar_results, distr_results) =  {
+    let (scalar_results, distr_results, list_resutls) =  {
         run_criteria_list!(
             &args,
             &dict,
@@ -64,58 +65,66 @@ fn main() {
                 &StandardCriteria::PseudorapidityFilterCnt(4.4, 5.8),
                 &StandardCriteria::PseudorapidityFilterCnt(-5.8, -4.4),
             ],
-            ( StandardDistributionCriteraDefiner::PdirTheta, DEG_MIN, DEG_MAX, DEG_CNT, "N(Theta_p)".to_string() ),
-            ( StandardDistributionCriteraDefiner::PNu, NU_MIN, NU_MAX, NU_CNT, "N(Nu)".to_string() ),
-            ( StandardDistributionCriteraDefiner::PNu_selected, NU_MIN, NU_MAX, NU_CNT, "N(Nu, [p])".to_string(), arg=( {
-                let code = dict.get_particle_code("Proton").unwrap();
-                vec![code]
-            }, ) ),
-            ( StandardDistributionCriteraDefiner::PNu_selected, NU_MIN, NU_MAX, NU_CNT, "N(Nu, [~p])".to_string(), arg=( {
-                let code = dict.get_particle_code("Proton").unwrap();
-                vec![-code]
-            }, ) ),
-            ( StandardDistributionCriteraDefiner::PNu_selected, NU_MIN, NU_MAX, NU_CNT, "N(Nu, [n])".to_string(), arg=( {
-                let code = dict.get_particle_code("Neutron").unwrap();
-                vec![code]
-            }, ) ),
-            ( StandardDistributionCriteraDefiner::PNu_selected, NU_MIN, NU_MAX, NU_CNT, "N(Nu, [~n])".to_string(), arg=( {
-                let code = dict.get_particle_code("Neutron").unwrap();
-                vec![-code]
-            }, ) ),
-            ( StandardDistributionCriteraDefiner::PNu_selected, NU_MIN, NU_MAX, NU_CNT, "N(Nu, [pi0])".to_string(), arg=( {
-                let code = dict.get_particle_code("pi0").unwrap();
-                vec![code]
-            }, ) ),
-            ( StandardDistributionCriteraDefiner::PNu_selected, NU_MIN, NU_MAX, NU_CNT, "N(Nu, [pi+])".to_string(), arg=( {
-                let code = dict.get_particle_code("pi+").unwrap();
-                vec![code]
-            }, ) ),
-            ( StandardDistributionCriteraDefiner::PNu_selected, NU_MIN, NU_MAX, NU_CNT, "N(Nu, [pi-])".to_string(), arg=( {
-                let code = dict.get_particle_code("pi-").unwrap();
-                vec![code]
-            }, ) ),
-            ( StandardDistributionCriteraDefiner::PNu_selected, NU_MIN, NU_MAX, NU_CNT, "N(Nu, [K+])".to_string(), arg=( {
-                let code = dict.get_particle_code("K+").unwrap();
-                vec![code]
-            }, ) ),
-            ( StandardDistributionCriteraDefiner::PNu_selected, NU_MIN, NU_MAX, NU_CNT, "N(Nu, [K-])".to_string(), arg=( {
-                let code = dict.get_particle_code("K-").unwrap();
-                vec![code]
-            }, ) ),
-            ( StandardDistributionCriteraDefiner::PNu_selected, NU_MIN, NU_MAX, NU_CNT, "N(Nu, [K0])".to_string(), arg=( {
-                let code = dict.get_particle_code("K0").unwrap();
-                vec![code]
-            }, ) )
+            vec![ ParticleListCompiler::new( {
+                    let code = dict.get_particle_code("Proton").unwrap();
+                    let mut set = HashSet::new();
+                    set.insert(-code);
+                    set
+                }) ],
+            [
+                ( StandardDistributionCriteraDefiner::PdirTheta, DEG_MIN, DEG_MAX, DEG_CNT, "N(Theta_p)".to_string() ),
+                ( StandardDistributionCriteraDefiner::PNu, NU_MIN, NU_MAX, NU_CNT, "N(Nu)".to_string() ),
+                ( StandardDistributionCriteraDefiner::PNu_selected, NU_MIN, NU_MAX, NU_CNT, "N(Nu, [p])".to_string(), arg=( {
+                    let code = dict.get_particle_code("Proton").unwrap();
+                    vec![code]
+                }, ) ),
+                ( StandardDistributionCriteraDefiner::PNu_selected, NU_MIN, NU_MAX, NU_CNT, "N(Nu, [~p])".to_string(), arg=( {
+                    let code = dict.get_particle_code("Proton").unwrap();
+                    vec![-code]
+                }, ) ),
+                ( StandardDistributionCriteraDefiner::PNu_selected, NU_MIN, NU_MAX, NU_CNT, "N(Nu, [n])".to_string(), arg=( {
+                    let code = dict.get_particle_code("Neutron").unwrap();
+                    vec![code]
+                }, ) ),
+                ( StandardDistributionCriteraDefiner::PNu_selected, NU_MIN, NU_MAX, NU_CNT, "N(Nu, [~n])".to_string(), arg=( {
+                    let code = dict.get_particle_code("Neutron").unwrap();
+                    vec![-code]
+                }, ) ),
+                ( StandardDistributionCriteraDefiner::PNu_selected, NU_MIN, NU_MAX, NU_CNT, "N(Nu, [pi0])".to_string(), arg=( {
+                    let code = dict.get_particle_code("pi0").unwrap();
+                    vec![code]
+                }, ) ),
+                ( StandardDistributionCriteraDefiner::PNu_selected, NU_MIN, NU_MAX, NU_CNT, "N(Nu, [pi+])".to_string(), arg=( {
+                    let code = dict.get_particle_code("pi+").unwrap();
+                    vec![code]
+                }, ) ),
+                ( StandardDistributionCriteraDefiner::PNu_selected, NU_MIN, NU_MAX, NU_CNT, "N(Nu, [pi-])".to_string(), arg=( {
+                    let code = dict.get_particle_code("pi-").unwrap();
+                    vec![code]
+                }, ) ),
+                ( StandardDistributionCriteraDefiner::PNu_selected, NU_MIN, NU_MAX, NU_CNT, "N(Nu, [K+])".to_string(), arg=( {
+                    let code = dict.get_particle_code("K+").unwrap();
+                    vec![code]
+                }, ) ),
+                ( StandardDistributionCriteraDefiner::PNu_selected, NU_MIN, NU_MAX, NU_CNT, "N(Nu, [K-])".to_string(), arg=( {
+                    let code = dict.get_particle_code("K-").unwrap();
+                    vec![code]
+                }, ) ),
+                ( StandardDistributionCriteraDefiner::PNu_selected, NU_MIN, NU_MAX, NU_CNT, "N(Nu, [K0])".to_string(), arg=( {
+                    let code = dict.get_particle_code("K0").unwrap();
+                    vec![code]
+                }, ) )
+            ]
         )
     };
 
     let end = start.elapsed().unwrap();
     let sysprx = {
-        if args.lab {
-            "Lab"
-        } else {
+        //if args.lab {
+        //    "Lab"
+        //} else {
             ""
-        }
+        //}
     }.to_string();
     // headers = "E[GeV];\tB;\tL\n".as_bytes()
     println!("TOTAL DONE: {} s", end.as_secs_f64());
@@ -128,7 +137,7 @@ fn main() {
                 "# hega-rs ver.{} statistics: \n#{:?} in Lab: {}\n",
                 VERSION,
                 args.ftype,
-                args.lab
+                false // args.lab
             ).as_bytes()
         ).unwrap();
         f.write((headers.join(";\t") + "\n").as_bytes()).unwrap();
@@ -148,7 +157,7 @@ fn main() {
                         VERSION,
                         pref, size,
                         args.ftype,
-                        args.lab
+                        false // args.lab
                     ).as_bytes()
                 ).unwrap();
                 
@@ -161,6 +170,47 @@ fn main() {
                         x + &y
                     }
                 ).unwrap();
+                f.write(s.as_bytes()).unwrap();
+            }
+        );
+        // f.write((headers.join(";\t") + "\n").as_bytes()).unwrap();
+        // res.iter().for_each(|vals| {
+        //     f.write((vals.iter().map(ToString::to_string).collect::<Vec<_>>().join(";\t") + "\n").as_bytes())
+        //         .unwrap();
+        // });
+    }
+
+    if calc_target.contains(&CalcTarget::ParticleList) {
+        let suff = args.o.clone();
+        list_resutls.iter().for_each(
+            |list_res| {
+                let pref = format!("Particles({:?})", {
+                    let mut v = list_res.id_filter.iter().collect::<Vec<_>>();
+                    v.sort();
+                    v
+                } );
+                let mut f = File::create(format!("{}{}-{}", sysprx, pref, suff)).unwrap();
+                f.write(
+                    format!(
+                        "# hega-rs ver.{} particle compilation : {}; total-items={}\n \t source\n#{:?} in Lab: {}\n",
+                        VERSION,
+                        pref, list_res.data.len(),
+                        args.ftype,
+                        false // args.lab
+                    ).as_bytes()
+                ).unwrap();
+                f.write(
+                    "id;\tmass;\tp;\tbeta;\n".as_bytes()
+                ).unwrap();
+
+                let s = list_res.data.iter().fold(
+                    "".to_string(),
+                    |x, d| {
+                        x + &format!(
+                            "{};\t{};\t{};\t{};\n", d.id, d.mass, d.p, d.beta
+                        )
+                    }
+                );
                 f.write(s.as_bytes()).unwrap();
             }
         );

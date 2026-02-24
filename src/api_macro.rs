@@ -66,9 +66,10 @@ pub fn generate_dictionary(x: &AcceptedTypes) -> EposDict {
 
 #[macro_export]
 macro_rules! run_criteria_list_inner {
-    ($args:expr, $calc_target:expr, $criteria_vec:expr, $d_buf_criteria:expr, $dict:expr, $DataFile:ty) => {
+    ($args:expr, $calc_target:expr, $criteria_vec:expr, $plist_collector:expr, $d_buf_criteria:expr, $dict:expr, $DataFile:ty) => {
         {
             let criteria: Vec< &dyn ScalarCriteria<'_, _, _> > = $criteria_vec;
+            let plist_crit = $plist_collector;
             let start = SystemTime::now();
             let files = $args.filenames.iter().fold(None,
                 |fo:Option<$DataFile>, x| {
@@ -96,18 +97,18 @@ macro_rules! run_criteria_list_inner {
             println!("READING DONE: {} s", end.as_secs_f64());
             let events = {
                 let mut events = files.borrow_blocks();
-                if $args.lab {
-                    events.par_iter_mut().for_each(
-                        |x|{
-                            x.event.iter_mut().for_each(
-                                |p| {
-                                    let mp = lab_momentum(p, $dict);
-                                    p.p = mp;
-                                }
-                            );
-                        }
-                    );
-                }
+                // if $args.lab {
+                //     events.par_iter_mut().for_each(
+                //         |x|{
+                //             x.event.iter_mut().for_each(
+                //                 |p| {
+                //                     let mp = lab_momentum(p, $dict);
+                //                     p.p = mp;
+                //                 }
+                //             );
+                //         }
+                //     );
+                // }
                 events
             };
             let analyzer = HEPEventAnalyzer::new(&events);
@@ -118,7 +119,11 @@ macro_rules! run_criteria_list_inner {
                 analyzer.calculate_criteria(crate::anlz::IS_FINAL_FILTER::<<$DataFile as GenericDataContainer>::Block>, criteria, $dict)
             } else {Default::default()};
 
-            (stat_res, distr_res)
+            let list_res = if $calc_target.contains(&CalcTarget::ParticleList) {
+                analyzer.calculate_particle_list(crate::anlz::IS_FINAL_FILTER::<<$DataFile as GenericDataContainer>::Block>, plist_crit, $dict)
+            } else {Default::default()};
+
+            (stat_res, distr_res, list_res)
         }
     };
 }
@@ -130,9 +135,10 @@ macro_rules! run_criteria_list {
         $dict:expr,
         $calc_target:expr,
         $criteria_vec:expr,
-        $( 
-            ($Definer: ident::$DefinerVeriant: ident, $DEG_MIN:expr, $DEG_MAX:expr, $DEG_CNT:expr, $NAME:expr $(, arg=($( $ARG:expr, )*) )? )
-        ),*
+        $plist_collector:expr,
+        [$(
+            ($Definer: ident::$DefinerVariant: ident, $DEG_MIN:expr, $DEG_MAX:expr, $DEG_CNT:expr, $NAME:expr $(, arg=($( $ARG:expr, )*) )? )
+        ),*]
     ) => {
         
         match $args.ftype {
@@ -141,13 +147,14 @@ macro_rules! run_criteria_list {
                     { $args },
                     { $calc_target },
                     { $criteria_vec },
+                    { $plist_collector },
                     {
                         vec!(
                             $(
                                 #[allow(unused_assignments)]
                                 {
                                     standard_criteria!(
-                                        $Definer::$DefinerVeriant,
+                                        $Definer::$DefinerVariant,
                                         OSCEposDataFile<'_>,
                                         $DEG_MIN, $DEG_MAX, $DEG_CNT, $NAME $(, arg=$($ARG ,)* )?
                                     )
@@ -164,13 +171,14 @@ macro_rules! run_criteria_list {
                     { $args },
                     { $calc_target },
                     { $criteria_vec },
+                    { $plist_collector },
                     {
                         vec!(
                             $(
                                 #[allow(unused_assignments)]
                                 {
                                     standard_criteria!(
-                                        $Definer::$DefinerVeriant,
+                                        $Definer::$DefinerVariant,
                                         OSC97UrQMDDataFile<'_>,
                                         $DEG_MIN, $DEG_MAX, $DEG_CNT, $NAME $(, arg=$($ARG, )* )?
                                     )
@@ -187,13 +195,14 @@ macro_rules! run_criteria_list {
                     { $args },
                     { $calc_target },
                     { $criteria_vec },
+                    { $plist_collector },
                     {
                         vec!(
                             $(
                                 #[allow(unused_assignments)]
                                 {
                                     standard_criteria!(
-                                        $Definer::$DefinerVeriant,
+                                        $Definer::$DefinerVariant,
                                         PHQMDDataFile<'_>,
                                         $DEG_MIN, $DEG_MAX, $DEG_CNT, $NAME $(, arg=$($ARG, )* )?
                                     )
@@ -210,13 +219,14 @@ macro_rules! run_criteria_list {
                     { $args },
                     { $calc_target },
                     { $criteria_vec },
+                    { $plist_collector },
                     {
                         vec!(
                             $(
                                 #[allow(unused_assignments)]
                                 {
                                     standard_criteria!(
-                                        $Definer::$DefinerVeriant,
+                                        $Definer::$DefinerVariant,
                                         QGSMDataFile<'_>,
                                         $DEG_MIN, $DEG_MAX, $DEG_CNT, $NAME $(, arg=$($ARG, )* )?
                                     )
@@ -233,13 +243,14 @@ macro_rules! run_criteria_list {
                     { $args },
                     { $calc_target },
                     { $criteria_vec },
+                    { $plist_collector },
                     {
                         vec!(
                             $(
                                 #[allow(unused_assignments)]
                                 {
                                     standard_criteria!(
-                                        $Definer::$DefinerVeriant,
+                                        $Definer::$DefinerVariant,
                                         HepMCDataFile<'_>,
                                         $DEG_MIN, $DEG_MAX, $DEG_CNT, $NAME $(, arg=$($ARG, )* )?
                                     )
