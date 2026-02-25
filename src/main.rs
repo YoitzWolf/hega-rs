@@ -192,7 +192,7 @@ fn main() {
                 let mut f = File::create(format!("{}{}-{}", sysprx, pref, suff)).unwrap();
                 f.write(
                     format!(
-                        "# hega-rs ver.{} particle compilation : {}; total-items={}\n \t source\n#{:?} in Lab: {}\n",
+                        "# hega-rs ver.{} particle compilation : {}; total-items={}\n#\t source{:?} in Lab: {}\n",
                         VERSION,
                         pref, list_res.data.len(),
                         args.ftype,
@@ -200,7 +200,7 @@ fn main() {
                     ).as_bytes()
                 ).unwrap();
                 f.write(
-                    "id;\tmass;\tp;\tbeta;\n".as_bytes()
+                    "id;\tmass;\tcharge;\tp;\tbeta;\n".as_bytes()
                 ).unwrap();
 
                 let s = list_res.data.iter().fold(
