@@ -207,7 +207,7 @@ fn main() {
                     "".to_string(),
                     |x, d| {
                         x + &format!(
-                            "{};\t{};\t{};\t{};\n", d.id, d.mass, d.p, d.beta
+                            "{};\t{};\t{};\t{};\t{};\n", d.id, d.mass, d.q_charge ,d.p, d.beta
                         )
                     }
                 );

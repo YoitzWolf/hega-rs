@@ -489,6 +489,7 @@ impl<'a, S, Event: HEPEvent> DistributionCritetia<'a, S, Event::P> for StandardD
 pub struct ParticleListOutput {
     pub id: i32,
     pub mass: f64,
+    pub q_charge: f64,
     pub p: f64,
     pub beta: f64
 }
@@ -499,6 +500,7 @@ impl ParticleListOutput {
         Self {
             id: value.code(d),
             mass: value.mass_energy(d),
+            q_charge: value.e_charge(d),
             p: value.momentum_energy(d),
             beta: beta(value, d),
         }
