@@ -42,7 +42,6 @@ fn main() {
     println!(">>>> {:?}", calc_target);
     
     let start = SystemTime::now();
-    
     let (scalar_results, distr_results, list_resutls) =  {
         run_criteria_list!(
             &args,
@@ -65,12 +64,20 @@ fn main() {
                 &StandardCriteria::PseudorapidityFilterCnt(4.4, 5.8),
                 &StandardCriteria::PseudorapidityFilterCnt(-5.8, -4.4),
             ],
-            vec![ ParticleListCompiler::new( {
+            vec![
+                ParticleListCompiler::new( {
                     let code = dict.get_particle_code("Proton").unwrap();
                     let mut set = HashSet::new();
                     set.insert(-code);
                     set
-                }) ],
+                }),
+                ParticleListCompiler::new( {
+                    let code = dict.get_particle_code("Proton").unwrap();
+                    let mut set = HashSet::new();
+                    set.insert(code);
+                    set
+                }),
+            ],
             [
                 ( StandardDistributionCriteraDefiner::PdirTheta, DEG_MIN, DEG_MAX, DEG_CNT, "N(Theta_p)".to_string() ),
                 ( StandardDistributionCriteraDefiner::PNu, NU_MIN, NU_MAX, NU_CNT, "N(Nu)".to_string() ),
