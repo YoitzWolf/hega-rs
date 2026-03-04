@@ -138,12 +138,29 @@ where &'a[Event]: rayon::iter::IntoParallelIterator<Item = &'a Event>
         dec: &<Event::P as Particle>::Decoder
     ) -> Vec<ParticleListCompiler>
     where
+        Event: Sync,
         <Event as HEPEvent>::P: 'static ,
         <Event::P as Particle>::Decoder: Sync
     {
-        let criteria_vec = Arc::new(criteria.clone());
         let dec = Arc::new(dec);
-        let results = self.events.par_iter().map(
+        let results = criteria.clone().par_iter().map(
+            |criteria| {
+                let mut criteria = criteria.clone();
+                self.events.iter().for_each(|event| {
+                    event.particles()
+                        .filter(
+                            |x| filter(x, dec.as_ref())
+                        )
+                        .for_each(|particle| {
+                            if criteria.id_filter.contains(&particle.code(&dec)) {
+                                criteria.data.push(ParticleListOutput::from_hep_particle::<Event>(&particle, &dec));
+                            }
+                        })
+                });
+                criteria
+            }
+        ).collect::<Vec<_>>();
+        /*let results = self.events.iter().map(
             |event| {
                 let mut criterias: Vec<_> = criteria_vec.iter().map(|x| x.clean_clone()).collect();
                 event.particles().filter(|x| {
@@ -169,7 +186,7 @@ where &'a[Event]: rayon::iter::IntoParallelIterator<Item = &'a Event>
                 f.append(&mut x);
                 f
             }
-        );
+        );*/
         results
     }
 
